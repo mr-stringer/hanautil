@@ -148,5 +148,14 @@ func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 		}
 	}
 
+	var backupCatalogSize uint64
+	r5 := h.db.QueryRow(q_GetBackupCatalogSize)
+	err = r5.Scan(&backupCatalogSize)
+	if err != nil {
+		/*PromoteError*/
+		return bs, err
+	}
+	bs.SizeOfBackupCatalog = backupCatalogSize
+
 	return bs, nil
 }

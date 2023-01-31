@@ -23,6 +23,12 @@ type BackupSummary struct {
 	SizeOfDifferentialBackups uint64
 	SizeOfLogMissing          uint64
 	SizeOfDataSnapshots       uint64
+	SizeOfBackupCatalog       uint64
 	OldestFullBackupDate      time.Time
 	OldestLogBackupDate       time.Time
+}
+
+type TruncateStats struct {
+	FilesRemoved uint64
+	BytesRemoved uint64
 }

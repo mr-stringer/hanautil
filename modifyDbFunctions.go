@@ -50,3 +50,60 @@ func (h *hanaUtilClient) RemoveTraceFile(host, filename string) error {
 
 	return err
 }
+
+// TruncateBackupCatalog removes entries from the HANA database backup catalog
+// with the option of permanently destroying associated physical files.
+// A large HANA backup catalog can cause performance issues and is recommeded to
+// be <50MiB
+func (h *hanaUtilClient) TruncateBackupCatalog(days int, complete bool) (TruncateStats, error) {
+	tr := TruncateStats{}
+	//First find the last full backup that is older than the given days
+	r1 := h.db.QueryRow(q_GetLatestFullBackupID(uint(days)))
+	var backupId string
+	err := r1.Scan(&backupId)
+	if err != nil {
+		/*PromoteError*/
+		return tr, err
+	}
+
+	var truncFiles uint64
+	var truncBytes uint64
+	r2 := h.db.QueryRow(f_GetTruncateDate(backupId))
+	err = r2.Scan(&truncFiles, &truncBytes)
+	if err != nil {
+		/*PromoteError*/
+		return tr, err
+	}
+
+	if complete {
+		_, err = h.db.Exec(f_GetBackupDeleteComplete(backupId))
+		if err != nil {
+			/*Promote error*/
+			return tr, err
+		}
+	} else {
+		_, err = h.db.Exec(f_GetBackupDelete(backupId))
+		if err != nil {
+			/*Promote error*/
+			return tr, err
+		}
+	}
+
+	/*Hopefull, all of the truncated stuff should be gone, but we need to
+	check */
+	var postTruncFiles uint64
+	var postTruncBytes uint64
+	r3 := h.db.QueryRow(f_GetTruncateDate(backupId))
+	err = r3.Scan(&postTruncFiles, &postTruncBytes)
+	if err != nil {
+		/*PromoteError*/
+		return tr, err
+	}
+
+	/*There's a risk here of going minus on the uints
+	fixed later */
+	tr.FilesRemoved = truncFiles - postTruncFiles
+	tr.BytesRemoved = truncBytes - postTruncBytes
+
+	return tr, nil
+}
