@@ -91,7 +91,8 @@ func f_GetBackupDeleteComplete(backupId string) string {
 	return fmt.Sprintf("BACKUP CATALOG DELETE ALL BEFORE BACKUP_ID %s COMPLETE", backupId)
 }
 
-func f_GetTruncateDate(backupId string) string {
+// Truncate the backup catalog
+func f_GetTruncateData(backupId string) string {
 	return fmt.Sprintf("SELECT "+
 		"COUNT(BACKUP_ID) AS FILES, "+
 		"COALESCE(SUM(BACKUP_SIZE),0) AS BACKUP_SIZE "+
@@ -99,4 +100,16 @@ func f_GetTruncateDate(backupId string) string {
 		"\"SYS\".\"M_BACKUP_CATALOG_FILES\" "+
 		"WHERE "+
 		"BACKUP_ID < '%s'", backupId)
+}
+
+// Get the number of stat alert server alerts older then given 'days' parameter
+func f_GetStatServerAlerts(days uint) string {
+	return fmt.Sprintf("SELECT COUNT(SNAPSHOT_ID) AS COUNT FROM \"_SYS_STATISTICS\".\"STATISTICS_ALERTS_BASE\" WHERE ALERT_TIMESTAMP < ADD_DAYS(NOW(), -%d)", days)
+}
+
+// statement to remove alerts older than the given number of days
+func f_RemoveStatServerAlerts(days uint) string {
+	return fmt.Sprintf("DELETE FROM "+
+		"\"_SYS_STATISTICS\".\"STATISTICS_ALERTS_BASE\" "+
+		"WHERE ALERT_TIMESTAMP < ADD_DAYS(NOW(), -%d)", days)
 }

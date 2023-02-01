@@ -68,7 +68,7 @@ func (h *hanaUtilClient) TruncateBackupCatalog(days int, complete bool) (Truncat
 
 	var truncFiles uint64
 	var truncBytes uint64
-	r2 := h.db.QueryRow(f_GetTruncateDate(backupId))
+	r2 := h.db.QueryRow(f_GetTruncateData(backupId))
 	err = r2.Scan(&truncFiles, &truncBytes)
 	if err != nil {
 		/*PromoteError*/
@@ -89,21 +89,63 @@ func (h *hanaUtilClient) TruncateBackupCatalog(days int, complete bool) (Truncat
 		}
 	}
 
-	/*Hopefull, all of the truncated stuff should be gone, but we need to
+	/*Hopefully, all of the truncated stuff should be gone, but we need to
 	check */
 	var postTruncFiles uint64
 	var postTruncBytes uint64
-	r3 := h.db.QueryRow(f_GetTruncateDate(backupId))
+	r3 := h.db.QueryRow(f_GetTruncateData(backupId))
 	err = r3.Scan(&postTruncFiles, &postTruncBytes)
 	if err != nil {
 		/*PromoteError*/
 		return tr, err
 	}
 
-	/*There's a risk here of going minus on the uints
-	fixed later */
-	tr.FilesRemoved = truncFiles - postTruncFiles
-	tr.BytesRemoved = truncBytes - postTruncBytes
+	/*Mitigation around potentially going less than zero on uint vars*/
+	if postTruncBytes > 0 {
+		tr.FilesRemoved = truncFiles - postTruncFiles
+	} else {
+		tr.FilesRemoved = truncFiles
+	}
+
+	if postTruncFiles > 0 {
+		tr.BytesRemoved = truncBytes - postTruncBytes
+	} else {
+		tr.BytesRemoved = truncBytes
+	}
 
 	return tr, nil
+}
+
+// RemoveStatServerAlerts removes entries from the
+// SYS_STATISTICS.STATISTICS_ALERTS_BASE table that are older than the number of
+// days given in the 'days' argument.
+// The function returns a uint64 which
+func (h *hanaUtilClient) RemoveStatServerAlerts(days uint) (uint64, error) {
+	var preRemove uint64
+	r1 := h.db.QueryRow(f_GetStatServerAlerts(days))
+	err := r1.Scan(&preRemove)
+	if err != nil {
+		/*PromoteError*/
+		return 0, err
+	}
+
+	/*Now do the deletion*/
+	_, err = h.db.Exec(f_RemoveStatServerAlerts(days))
+	if err != nil {
+		/*PromoteError*/
+		return 0, err
+	}
+	var postRemove uint64
+	r2 := h.db.QueryRow(f_GetStatServerAlerts(days))
+	err = r2.Scan(&postRemove)
+	if err != nil {
+		/*PromoteError*/
+		return 0, err
+	}
+
+	if postRemove > 0 {
+		preRemove = preRemove - postRemove
+	}
+
+	return preRemove, nil
 }

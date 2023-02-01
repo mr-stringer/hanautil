@@ -159,3 +159,19 @@ func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 
 	return bs, nil
 }
+
+// GetStatServerAlerts is a function that reports the number of historic alerts
+// that are stored in the _SYS_STATISTICS.STATISTICS_ALERTS_BASE table. SAP HANA
+// minichecks will flag any database where there are alerts in the tables that
+// are older than 42 days. This function will return the number of alerts that
+// are more than the 'days' argument old.
+func (h *hanaUtilClient) GetStatServerAlerts(days uint) (uint, error) {
+	var alerts uint
+	r1 := h.db.QueryRow(f_GetStatServerAlerts(days))
+	err := r1.Scan(&alerts)
+	if err != nil {
+		/*PromoteError*/
+		return alerts, err
+	}
+	return alerts, err
+}
