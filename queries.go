@@ -13,7 +13,7 @@ import "fmt"
 const q_GetHanaVersion = "SELECT VERSION FROM \"SYS\".\"M_DATABASE\""
 
 const q_GetBackupCatalogEntryCount = "SELECT " +
-	"COUNT(BACKUP_ID) " +
+	"COUNT(BACKUP_ID) AS COUNT " +
 	"FROM \"SYS\".\"M_BACKUP_CATALOG\""
 
 const q_GetBackupCount = "SELECT " +
@@ -38,6 +38,30 @@ const q_GetOldestBackups = "SELECT " +
 	"ENTRY_TYPE_NAME = 'complete data backup' OR ENTRY_TYPE_NAME = 'log backup' " +
 	"GROUP BY ENTRY_TYPE_NAME"
 
+const q_GetBackupCatalogSize = "SELECT TOP 1 " +
+	"BF.BACKUP_SIZE " +
+	"FROM " +
+	"\"SYS\".\"M_BACKUP_CATALOG\" B, " +
+	"\"SYS\".\"M_BACKUP_CATALOG_FILES\" BF " +
+	"WHERE " +
+	"B.BACKUP_ID = BF.BACKUP_ID AND " +
+	"BF.SOURCE_TYPE_NAME = 'catalog' AND " +
+	"B.STATE_NAME = 'successful' " +
+	"ORDER BY " +
+	"B.SYS_START_TIME DESC; "
+
+func q_GetLatestFullBackupID(days uint) string {
+	return fmt.Sprintf("SELECT "+
+		"BACKUP_ID "+
+		"FROM \"SYS\".\"M_BACKUP_CATALOG\""+
+		"WHERE STATE_NAME = 'successful' "+
+		"AND "+
+		"ENTRY_TYPE_NAME = 'complete data backup' "+
+		"AND SYS_END_TIME < ("+
+		"SELECT ADD_DAYS(NOW(),-%d) FROM DUMMY) "+
+		"ORDER BY SYS_END_TIME DESC LIMIT 1", days)
+}
+
 func f_GetTraceFile(host, filename string) string {
 	return fmt.Sprintf("SELECT COUNT(FILE_NAME) AS COUNT FROM \"SYS\".\"M_TRACEFILES\" WHERE HOST = '%s' AND FILE_NAME = '%s'", host, filename)
 }
@@ -51,4 +75,41 @@ func f_GetTraceFiles(days uint) string {
 // Require TRACE ADMIN priv
 func f_RemoveTraceFile(hostname, filename string) string {
 	return fmt.Sprintf("ALTER SYSTEM REMOVE TRACES('%s', '%s')", hostname, filename)
+}
+
+// Returns a string that is used to remove old backup catalog entries. This
+// statement will not destroy backup media. The statement will remove all
+// entries older than the backup ID given. The given backup ID must be a full
+// backup
+func f_GetBackupDelete(backupId string) string {
+	return fmt.Sprintf("BACKUP CATALOG DELETE ALL BEFORE BACKUP_ID %s", backupId)
+}
+
+// Same as above but will also destroy the files from the file system or
+// backint
+func f_GetBackupDeleteComplete(backupId string) string {
+	return fmt.Sprintf("BACKUP CATALOG DELETE ALL BEFORE BACKUP_ID %s COMPLETE", backupId)
+}
+
+// Truncate the backup catalog
+func f_GetTruncateData(backupId string) string {
+	return fmt.Sprintf("SELECT "+
+		"COUNT(BACKUP_ID) AS FILES, "+
+		"COALESCE(SUM(BACKUP_SIZE),0) AS BACKUP_SIZE "+
+		"FROM "+
+		"\"SYS\".\"M_BACKUP_CATALOG_FILES\" "+
+		"WHERE "+
+		"BACKUP_ID < '%s'", backupId)
+}
+
+// Get the number of stat alert server alerts older then given 'days' parameter
+func f_GetStatServerAlerts(days uint) string {
+	return fmt.Sprintf("SELECT COUNT(SNAPSHOT_ID) AS COUNT FROM \"_SYS_STATISTICS\".\"STATISTICS_ALERTS_BASE\" WHERE ALERT_TIMESTAMP < ADD_DAYS(NOW(), -%d)", days)
+}
+
+// statement to remove alerts older than the given number of days
+func f_RemoveStatServerAlerts(days uint) string {
+	return fmt.Sprintf("DELETE FROM "+
+		"\"_SYS_STATISTICS\".\"STATISTICS_ALERTS_BASE\" "+
+		"WHERE ALERT_TIMESTAMP < ADD_DAYS(NOW(), -%d)", days)
 }
