@@ -1,5 +1,7 @@
 # hanautil
 
+[![Go](https://github.com/mr-stringer/hanautil/actions/workflows/go.yml/badge.svg)](https://github.com/mr-stringer/hanautil/actions/workflows/go.yml)
+
 A helper utility for the HANA database written in golang.
 
 hanautil aims to provide helper functions for the monitoring and maintenance
