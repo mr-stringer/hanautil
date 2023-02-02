@@ -48,7 +48,7 @@ func (h *hanaUtilClient) RemoveTraceFile(host, filename string) error {
 		return fmt.Errorf("TraceFileNotRemoved")
 	}
 
-	return err
+	return nil
 }
 
 // TruncateBackupCatalog removes entries from the HANA database backup catalog
@@ -97,20 +97,27 @@ func (h *hanaUtilClient) TruncateBackupCatalog(days int, complete bool) (Truncat
 	err = r3.Scan(&postTruncFiles, &postTruncBytes)
 	if err != nil {
 		/*PromoteError*/
-		return tr, err
+		return TruncateStats{}, err
 	}
 
+	/*Always report number of removed files / entries */
 	/*Mitigation around potentially going less than zero on uint vars*/
-	if postTruncBytes > 0 {
+	if postTruncFiles < truncFiles {
 		tr.FilesRemoved = truncFiles - postTruncFiles
 	} else {
 		tr.FilesRemoved = truncFiles
 	}
 
-	if postTruncFiles > 0 {
-		tr.BytesRemoved = truncBytes - postTruncBytes
+	/*Report bytes only in complete mode*/
+	if complete {
+		/*Mitigation around potentially going less than zero on uint vars*/
+		if postTruncBytes < truncBytes {
+			tr.BytesRemoved = truncBytes - postTruncBytes
+		} else {
+			tr.BytesRemoved = truncBytes
+		}
 	} else {
-		tr.BytesRemoved = truncBytes
+		tr.BytesRemoved = 0
 	}
 
 	return tr, nil
@@ -143,9 +150,13 @@ func (h *hanaUtilClient) RemoveStatServerAlerts(days uint) (uint64, error) {
 		return 0, err
 	}
 
-	if postRemove > 0 {
-		preRemove = preRemove - postRemove
+	/*Although its unlikely, there is a chance that the not only do no alerts
+	get removed but quailify for the second query, which would lead to a
+	negative uint (which can't happen), so if the second query has a larger
+	total we assume that no alerts we removed and return a 0*/
+	if postRemove <= preRemove {
+		return preRemove - postRemove, nil
+	} else {
+		return 0, nil
 	}
-
-	return preRemove, nil
 }

@@ -60,20 +60,24 @@ func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 	err := r1.Scan(&bs.BackupCatalogEntries)
 	if err != nil {
 		/*Promote the error*/
-		return bs, err
+		return BackupSummary{}, err
 	}
 
 	r2, err := h.db.Query(q_GetBackupCount)
 	if err != nil {
 		/*Promote database error*/
-		return bs, err
+		return BackupSummary{}, err
 	}
 	defer r2.Close()
 
 	for r2.Next() {
 		var tmpCount uint64
 		var tmpType string
-		r2.Scan(&tmpCount, &tmpType)
+		err = r2.Scan(&tmpCount, &tmpType)
+		if err != nil {
+			/*PromoteError*/
+			return BackupSummary{}, err
+		}
 
 		switch tmpType {
 		case "complete data backup":
@@ -89,22 +93,25 @@ func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 		case "data snapshot":
 			bs.DataSnapshots = tmpCount
 		default:
-			return bs, fmt.Errorf("UnexpectedBackupType")
+			return BackupSummary{}, fmt.Errorf("UnexpectedBackupType")
 		}
 	}
 
 	r3, err := h.db.Query(q_GetBackupSizes)
 	if err != nil {
 		/*Promote database error*/
-		return bs, err
+		return BackupSummary{}, err
 	}
 	defer r3.Close()
 
 	for r3.Next() {
 		var tmpType string
 		var tmpCount uint64
-		r3.Scan(&tmpType, &tmpCount)
-		fmt.Printf("%s:%d\n", tmpType, tmpCount)
+		err = r3.Scan(&tmpType, &tmpCount)
+		if err != nil {
+			/*PromoteError*/
+			return BackupSummary{}, err
+		}
 		switch tmpType {
 		case "complete data backup":
 			bs.SizeOfFullBackupsBytes = tmpCount
@@ -119,14 +126,14 @@ func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 		case "data snapshot":
 			bs.SizeOfDataSnapshots = tmpCount
 		default:
-			return bs, fmt.Errorf("UnexpectedBackupType")
+			return BackupSummary{}, fmt.Errorf("UnexpectedBackupType")
 		}
 	}
 
 	r4, err := h.db.Query(q_GetOldestBackups)
 	if err != nil {
 		/*Promote database error*/
-		return bs, err
+		return BackupSummary{}, err
 	}
 	defer r4.Close()
 
@@ -136,7 +143,7 @@ func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 		err = r4.Scan(&tmpType, &tmpDate)
 		if err != nil {
 			/*Promote error*/
-			return bs, err
+			return BackupSummary{}, err
 		}
 		switch tmpType {
 		case "complete data backup":
@@ -144,7 +151,7 @@ func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 		case "log backup":
 			bs.OldestLogBackupDate = tmpDate
 		default:
-			return bs, fmt.Errorf("UnexpectedBackupType")
+			return BackupSummary{}, fmt.Errorf("UnexpectedBackupType")
 		}
 	}
 
@@ -153,7 +160,7 @@ func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 	err = r5.Scan(&backupCatalogSize)
 	if err != nil {
 		/*PromoteError*/
-		return bs, err
+		return BackupSummary{}, err
 	}
 	bs.SizeOfBackupCatalog = backupCatalogSize
 
