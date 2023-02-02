@@ -358,7 +358,7 @@ func Test_hanaUtilClient_RemoveStatServerAlerts(t *testing.T) {
 			mock.ExpectExec(f_RemoveStatServerAlerts(tt.args.days)).WillReturnError(fmt.Errorf("DbError"))
 		case "1stGetStatServerAlertsDbError":
 			mock.ExpectQuery(f_GetStatServerAlerts(tt.args.days)).WillReturnError(fmt.Errorf("DbError"))
-		case "RemoveStatServerAlertsScanError":
+		case "1stGetStatServerAlertsScanError":
 			rows1 := sqlmock.NewRows([]string{"COUNT"}).AddRow("1.111")
 			mock.ExpectQuery(f_GetStatServerAlerts(tt.args.days)).WillReturnRows(rows1)
 		default:
