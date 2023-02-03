@@ -1,7 +1,7 @@
 # hanautil
 
-[![Go](https://github.com/mr-stringer/hanautil/actions/workflows/go.yml/badge.svg)]
-[![Go Coverage](https://github.com/mr-stringer/hanautil/actions/workflows/gocover.yaml/badge.svg)]
+![Go](https://github.com/mr-stringer/hanautil/actions/workflows/go.yml/badge.svg)
+![Go Coverage](https://github.com/mr-stringer/hanautil/actions/workflows/gocover.yaml/badge.svg)
 
 A helper utility for the HANA database written in golang.
 
