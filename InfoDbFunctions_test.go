@@ -46,7 +46,7 @@ func Test_hanaUtilClient_GetVersion(t *testing.T) {
 
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			h := &hanaUtilClient{
+			h := &HanaUtilClient{
 				db:  tt.fields.db,
 				dsn: tt.fields.dsn,
 			}
@@ -121,7 +121,7 @@ func Test_hanaUtilClient_GetTraceFiles(t *testing.T) {
 
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			h := &hanaUtilClient{
+			h := &HanaUtilClient{
 				db:  tt.fields.db,
 				dsn: tt.fields.dsn,
 			}
@@ -348,7 +348,7 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			t.Errorf("No test case matched")
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			h := &hanaUtilClient{
+			h := &HanaUtilClient{
 				db:  tt.fields.db,
 				dsn: tt.fields.dsn,
 			}
@@ -400,7 +400,7 @@ func Test_hanaUtilClient_GetStatServerAlerts(t *testing.T) {
 			mock.ExpectQuery(f_GetStatServerAlerts(42)).WillReturnRows(rows1)
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			h := &hanaUtilClient{
+			h := &HanaUtilClient{
 				db:  tt.fields.db,
 				dsn: tt.fields.dsn,
 			}
@@ -467,7 +467,7 @@ func Test_hanaUtilClient_GetLogSegmentStats(t *testing.T) {
 			t.Errorf("No test case matched")
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			h := &hanaUtilClient{
+			h := &HanaUtilClient{
 				db:  tt.fields.db,
 				dsn: tt.fields.dsn,
 			}

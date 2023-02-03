@@ -2,7 +2,7 @@ package hanautil
 
 import "fmt"
 
-// The RemoveTraceFile function deletes HANA trace files. Use the the
+// RemoveTraceFile deletes HANA trace files. Use the the
 // GetTraceFiles function to find candidates for removal. The function takes two
 // arguments, the HANA host that the trace files resides upon and the trace file
 // name.
@@ -16,7 +16,7 @@ import "fmt"
 //
 // In the unlikely occurrence that host and file name combination does not yield
 // a unique result, the error 'TraceFileNotUnique' will be returned.
-func (h *hanaUtilClient) RemoveTraceFile(host, filename string) error {
+func (h *HanaUtilClient) RemoveTraceFile(host, filename string) error {
 	r1 := h.db.QueryRow(f_GetTraceFile(host, filename))
 	var count uint32
 	err := r1.Scan(&count)
@@ -55,7 +55,7 @@ func (h *hanaUtilClient) RemoveTraceFile(host, filename string) error {
 // with the option of permanently destroying associated physical files.
 // A large HANA backup catalog can cause performance issues and is recommeded to
 // be <50MiB
-func (h *hanaUtilClient) TruncateBackupCatalog(days int, complete bool) (TruncateStats, error) {
+func (h *HanaUtilClient) TruncateBackupCatalog(days int, complete bool) (TruncateStats, error) {
 	tr := TruncateStats{}
 	//First find the last full backup that is older than the given days
 	r1 := h.db.QueryRow(q_GetLatestFullBackupID(uint(days)))
@@ -127,7 +127,7 @@ func (h *hanaUtilClient) TruncateBackupCatalog(days int, complete bool) (Truncat
 // SYS_STATISTICS.STATISTICS_ALERTS_BASE table that are older than the number of
 // days given in the 'days' argument.
 // The function returns a uint64 which
-func (h *hanaUtilClient) RemoveStatServerAlerts(days uint) (uint64, error) {
+func (h *HanaUtilClient) RemoveStatServerAlerts(days uint) (uint64, error) {
 	var preRemove uint64
 	r1 := h.db.QueryRow(f_GetStatServerAlerts(days))
 	err := r1.Scan(&preRemove)
@@ -166,7 +166,7 @@ func (h *hanaUtilClient) RemoveStatServerAlerts(days uint) (uint64, error) {
 // volume which is especially import in MDC environments. The function will
 // return the number of bytes removed from the log volumes and an error. If an
 // error occurs the returned uint64 will be zero and the error will be populated
-func (h *hanaUtilClient) ReclaimLog() (uint64, error) {
+func (h *HanaUtilClient) ReclaimLog() (uint64, error) {
 	/*Get the amount of bytes consumed by free log segments before truncation*/
 	var preBytes uint64
 	row1 := h.db.QueryRow(q_GetFreeLogBytes)

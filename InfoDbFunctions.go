@@ -10,7 +10,7 @@ import (
 /******************************************************************************/
 
 // GetVersion returns the version of the the HANA database and an error.
-func (h *hanaUtilClient) GetVersion() (string, error) {
+func (h *HanaUtilClient) GetVersion() (string, error) {
 	r1 := h.db.QueryRow(q_GetHanaVersion)
 	var version string
 	err := r1.Scan(&version)
@@ -27,7 +27,7 @@ func (h *hanaUtilClient) GetVersion() (string, error) {
 // that have a modification date the exceeds the argument 'days'.  For example,
 // if days were set to '1', only the returned slice would only include details
 // of trace files where the modification date is was longer that 24 hours ago.
-func (h *hanaUtilClient) GetTraceFiles(days uint) ([]TraceFile, error) {
+func (h *HanaUtilClient) GetTraceFiles(days uint) ([]TraceFile, error) {
 	TraceFiles := make([]TraceFile, 0)
 	rows, err := h.db.Query(f_GetTraceFiles(days))
 
@@ -53,7 +53,7 @@ func (h *hanaUtilClient) GetTraceFiles(days uint) ([]TraceFile, error) {
 // GetBackupSummary provides a summary of the number of backups along with
 // aggregated backup size data found in the backup catalog. The dates of the
 // oldest full and log backups in the catalog are also supplied.
-func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
+func (h *HanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 	bs := BackupSummary{}
 
 	r1 := h.db.QueryRow(q_GetBackupCatalogEntryCount)
@@ -174,7 +174,7 @@ func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 // are more than the 'days' argument old.
 // Errors returned are either 'UnexpectedDbReturn', when the query produces an
 // unexpected value or a DB driver error promoted directly from the DB.
-func (h *hanaUtilClient) GetStatServerAlerts(days uint) (uint, error) {
+func (h *HanaUtilClient) GetStatServerAlerts(days uint) (uint, error) {
 	var alerts uint
 	r1 := h.db.QueryRow(f_GetStatServerAlerts(days))
 	err := r1.Scan(&alerts)
@@ -185,7 +185,9 @@ func (h *hanaUtilClient) GetStatServerAlerts(days uint) (uint, error) {
 	return alerts, err
 }
 
-func (h *hanaUtilClient) GetLogSegmentStats() (LogSegmentsStats, error) {
+// GetLogSegmentStats provides information about the free and non-free
+// log segments in the HANA log volume
+func (h *HanaUtilClient) GetLogSegmentStats() (LogSegmentsStats, error) {
 	ls := LogSegmentsStats{}
 	r1, err := h.db.Query(q_GetLogSegmentStats)
 	if err != nil {
