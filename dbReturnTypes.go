@@ -2,6 +2,7 @@ package hanautil
 
 import "time"
 
+// TraceFile is a struct that contains information about a HANA trace file
 type TraceFile struct {
 	Hostname      string
 	FileName      string
@@ -9,6 +10,7 @@ type TraceFile struct {
 	LastModified  time.Time
 }
 
+// BackupSummary is a struct that contains information regarding HANA backups
 type BackupSummary struct {
 	BackupCatalogEntries      uint64
 	FullBackups               uint64
@@ -28,11 +30,15 @@ type BackupSummary struct {
 	OldestLogBackupDate       time.Time
 }
 
+// TruncateStats provided information regarding the number of files and the
+// amount of data removed by truncating the backup catalog
 type TruncateStats struct {
 	FilesRemoved uint64
 	BytesRemoved uint64
 }
 
+// LogSegmentsStats provides information about how much space is used by
+// freeable and non-freeable log segments in the log volume
 type LogSegmentsStats struct {
 	FreeSegments             uint64
 	TotalFreeSegmentBytes    uint64

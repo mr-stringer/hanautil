@@ -176,7 +176,7 @@ func Test_hanaUtilClient_TruncateBackupCatalog(t *testing.T) {
 			t.Errorf("No test case matched")
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			h := &hanaUtilClient{
+			h := &HanaUtilClient{
 				db:  tt.fields.db,
 				dsn: tt.fields.dsn,
 			}
@@ -271,7 +271,7 @@ func Test_hanaUtilClient_RemoveTraceFile(t *testing.T) {
 			t.Errorf("No test case matched")
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			h := &hanaUtilClient{
+			h := &HanaUtilClient{
 				db:  tt.fields.db,
 				dsn: tt.fields.dsn,
 			}
@@ -366,7 +366,7 @@ func Test_hanaUtilClient_RemoveStatServerAlerts(t *testing.T) {
 			t.Errorf("No test case matched")
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			h := &hanaUtilClient{
+			h := &HanaUtilClient{
 				db:  tt.fields.db,
 				dsn: tt.fields.dsn,
 			}
@@ -463,7 +463,7 @@ func Test_hanaUtilClient_ReclaimLog(t *testing.T) {
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
-			h := &hanaUtilClient{
+			h := &HanaUtilClient{
 				db:  tt.fields.db,
 				dsn: tt.fields.dsn,
 			}

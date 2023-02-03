@@ -11,17 +11,17 @@ import (
 	_ "github.com/SAP/go-hdb/driver"
 )
 
-type hanaUtilClient struct {
+type HanaUtilClient struct {
 	db  *sql.DB //non-exported database connection
 	dsn string  //non-exported dsn, used to create connection
 }
 
-func NewClient(dsn string) *hanaUtilClient {
+func NewClient(dsn string) *HanaUtilClient {
 	/*should we do some basic dsn format testing?*/
-	return &hanaUtilClient{nil, dsn}
+	return &HanaUtilClient{nil, dsn}
 }
 
-func (h *hanaUtilClient) Connect() error {
+func (h *HanaUtilClient) Connect() error {
 	var err error
 	h.db, err = sql.Open("hdb", h.dsn)
 	if err != nil {
@@ -36,6 +36,6 @@ func (h *hanaUtilClient) Connect() error {
 	return nil
 }
 
-func (h *hanaUtilClient) Close() error {
+func (h *HanaUtilClient) Close() error {
 	return h.db.Close()
 }
