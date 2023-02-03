@@ -415,3 +415,70 @@ func Test_hanaUtilClient_GetStatServerAlerts(t *testing.T) {
 		})
 	}
 }
+
+func Test_hanaUtilClient_GetLogSegmentStats(t *testing.T) {
+	/*Test Setup*/
+	/*Mock DB*/
+	db1, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening mock database connection", err)
+	}
+	defer db1.Close()
+	type fields struct {
+		db  *sql.DB
+		dsn string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    LogSegmentsStats
+		wantErr bool
+	}{
+		{"Good", fields{db1, ""}, LogSegmentsStats{10, 10240, 50, 51200}, false},
+		{"NoRows", fields{db1, ""}, LogSegmentsStats{}, false},
+		{"DbError", fields{db1, ""}, LogSegmentsStats{}, true},
+		{"ScanError", fields{db1, ""}, LogSegmentsStats{}, true},
+		{"UnexpectedReturn", fields{db1, ""}, LogSegmentsStats{}, true},
+	}
+	for _, tt := range tests {
+		/*Set up per case mocking*/
+		switch tt.name {
+		case "Good":
+			rows1 := mock.NewRows([]string{"STATE", "SEGMENTS", "BYTES"})
+			rows1.AddRow("Free", 10, 10240)
+			rows1.AddRow("NonFree", 50, 51200)
+			mock.ExpectQuery(q_GetLogSegmentStats).WillReturnRows(rows1)
+		case "NoRows":
+			rows1 := mock.NewRows([]string{"STATE", "SEGMENTS", "BYTES"})
+			mock.ExpectQuery(q_GetLogSegmentStats).WillReturnRows(rows1)
+		case "DbError":
+			mock.ExpectQuery(q_GetLogSegmentStats).WillReturnError(fmt.Errorf("DbError"))
+		case "ScanError":
+			rows1 := mock.NewRows([]string{"STATE", "SEGMENTS", "BYTES"})
+			rows1.AddRow("Free", 10, "10240.12")
+			rows1.AddRow("NonFree", 50, 51200)
+			mock.ExpectQuery(q_GetLogSegmentStats).WillReturnRows(rows1)
+		case "UnexpectedReturn":
+			rows1 := mock.NewRows([]string{"STATE", "SEGMENTS", "BYTES"})
+			rows1.AddRow("NotExpected", 10, 10240)
+			mock.ExpectQuery(q_GetLogSegmentStats).WillReturnRows(rows1)
+		default:
+			fmt.Printf("No test case matched for %s\n", tt.name)
+			t.Errorf("No test case matched")
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			h := &hanaUtilClient{
+				db:  tt.fields.db,
+				dsn: tt.fields.dsn,
+			}
+			got, err := h.GetLogSegmentStats()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("hanaUtilClient.GetLogSegmentStats() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("hanaUtilClient.GetLogSegmentStats() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

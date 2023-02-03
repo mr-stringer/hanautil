@@ -172,6 +172,8 @@ func (h *hanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 // minichecks will flag any database where there are alerts in the tables that
 // are older than 42 days. This function will return the number of alerts that
 // are more than the 'days' argument old.
+// Errors returned are either 'UnexpectedDbReturn', when the query produces an
+// unexpected value or a DB driver error promoted directly from the DB.
 func (h *hanaUtilClient) GetStatServerAlerts(days uint) (uint, error) {
 	var alerts uint
 	r1 := h.db.QueryRow(f_GetStatServerAlerts(days))
@@ -181,4 +183,36 @@ func (h *hanaUtilClient) GetStatServerAlerts(days uint) (uint, error) {
 		return alerts, err
 	}
 	return alerts, err
+}
+
+func (h *hanaUtilClient) GetLogSegmentStats() (LogSegmentsStats, error) {
+	ls := LogSegmentsStats{}
+	r1, err := h.db.Query(q_GetLogSegmentStats)
+	if err != nil {
+		/*PromoteError*/
+		return LogSegmentsStats{}, err
+	}
+
+	for r1.Next() {
+		var tmpState string
+		var tmpBytes, tmpSegments uint64
+		err := r1.Scan(&tmpState, &tmpSegments, &tmpBytes)
+		if err != nil {
+			/*PromoteError*/
+			return LogSegmentsStats{}, err
+		}
+		switch tmpState {
+		case "Free":
+			ls.FreeSegments = tmpSegments
+			ls.TotalFreeSegmentBytes = tmpBytes
+		case "NonFree":
+			ls.NonFreeSegments = tmpSegments
+			ls.TotalNonFreeSegmentBytes = tmpBytes
+		default:
+			return LogSegmentsStats{}, fmt.Errorf("UnexpectedDbReturn")
+		}
+
+	}
+
+	return ls, nil
 }

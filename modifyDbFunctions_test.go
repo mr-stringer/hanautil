@@ -381,3 +381,100 @@ func Test_hanaUtilClient_RemoveStatServerAlerts(t *testing.T) {
 		})
 	}
 }
+
+func Test_hanaUtilClient_ReclaimLog(t *testing.T) {
+	/*Test Setup*/
+	/*Mock DB*/
+	db1, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening mock database connection", err)
+	}
+	defer db1.Close()
+	type fields struct {
+		db  *sql.DB
+		dsn string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    uint64
+		wantErr bool
+	}{
+		{"GoodFullDelete", fields{db1, ""}, 1000, false},
+		{"GoodPartialDelete", fields{db1, ""}, 900, false},
+		{"GoodNoDelete", fields{db1, ""}, 0, false},
+		{"GoodNoDeleteMoreLog", fields{db1, ""}, 0, false},
+		{"2ndGetFreeLogBytesDbError", fields{db1, ""}, 0, true},
+		{"2ndGetFreeLogBytesScanError", fields{db1, ""}, 0, true},
+		{"ReclaimLogDbError", fields{db1, ""}, 0, true},
+		{"1stGetFreeLogBytesDbError", fields{db1, ""}, 0, true},
+		{"1stGetFreeLogBytesScanError", fields{db1, ""}, 0, true},
+	}
+	for _, tt := range tests {
+		/*Set up per case mocking*/
+		switch tt.name {
+		case "GoodFullDelete":
+			rows1 := sqlmock.NewRows([]string{"BYTES"}).AddRow(1000)
+			rows2 := sqlmock.NewRows([]string{"BYTES"}).AddRow(0)
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows1)
+			mock.ExpectExec(q_ReclaimLog).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows2)
+		case "GoodPartialDelete":
+			rows1 := sqlmock.NewRows([]string{"BYTES"}).AddRow(1000)
+			rows2 := sqlmock.NewRows([]string{"BYTES"}).AddRow(100)
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows1)
+			mock.ExpectExec(q_ReclaimLog).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows2)
+		case "GoodNoDelete":
+			rows1 := sqlmock.NewRows([]string{"BYTES"}).AddRow(1000)
+			rows2 := sqlmock.NewRows([]string{"BYTES"}).AddRow(1000)
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows1)
+			mock.ExpectExec(q_ReclaimLog).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows2)
+		case "GoodNoDeleteMoreLog":
+			rows1 := sqlmock.NewRows([]string{"BYTES"}).AddRow(1000)
+			rows2 := sqlmock.NewRows([]string{"BYTES"}).AddRow(1100)
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows1)
+			mock.ExpectExec(q_ReclaimLog).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows2)
+		case "2ndGetFreeLogBytesDbError":
+			rows1 := sqlmock.NewRows([]string{"BYTES"}).AddRow(1000)
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows1)
+			mock.ExpectExec(q_ReclaimLog).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnError(fmt.Errorf("DbError"))
+		case "2ndGetFreeLogBytesScanError":
+			rows1 := sqlmock.NewRows([]string{"BYTES"}).AddRow(1000)
+			rows2 := sqlmock.NewRows([]string{"BYTES"}).AddRow("1102.323")
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows1)
+			mock.ExpectExec(q_ReclaimLog).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows2)
+		case "ReclaimLogDbError":
+			rows1 := sqlmock.NewRows([]string{"BYTES"}).AddRow(1000)
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows1)
+			mock.ExpectExec(q_ReclaimLog).WillReturnError(fmt.Errorf("DbError"))
+		case "1stGetFreeLogBytesScanError":
+			rows1 := sqlmock.NewRows([]string{"BYTES"}).AddRow("1000.34")
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnRows(rows1)
+		case "1stGetFreeLogBytesDbError":
+			mock.ExpectQuery(q_GetFreeLogBytes).WillReturnError(fmt.Errorf("DbError"))
+		default:
+			fmt.Printf("No test case matched for %s\n", tt.name)
+			t.Errorf("No test case matched")
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			h := &hanaUtilClient{
+				db:  tt.fields.db,
+				dsn: tt.fields.dsn,
+			}
+			got, err := h.ReclaimLog()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("hanaUtilClient.ReclaimLog() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("hanaUtilClient.ReclaimLog() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

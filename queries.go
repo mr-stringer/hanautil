@@ -50,6 +50,30 @@ const q_GetBackupCatalogSize = "SELECT TOP 1 " +
 	"ORDER BY " +
 	"B.SYS_START_TIME DESC; "
 
+const q_GetLogSegmentStats = "SELECT " +
+	"STATE, " +
+	"COUNT(STATE) AS SEGMENTS, " +
+	"COALESCE(SUM(TOTAL_SIZE),0) AS BYTES " +
+	"FROM  " +
+	"\"SYS\".\"M_LOG_SEGMENTS\" " +
+	"WHERE " +
+	"STATE = 'Free' GROUP BY STATE " +
+	"UNION ALL " +
+	"SELECT " +
+	"'NonFree' AS STATE, " +
+	"COUNT(STATE) AS SEGMENTS, " +
+	"COALESCE(SUM(TOTAL_SIZE),0) AS BYTES " +
+	"FROM  " +
+	"\"SYS\".\"M_LOG_SEGMENTS\" " +
+	"WHERE STATE != 'Free';"
+
+const q_GetFreeLogBytes string = "SELECT " +
+	"COALESCE(SUM(TOTAL_SIZE),0) AS BYTES " +
+	"FROM \"SYS\".\"M_LOG_SEGMENTS\" " +
+	"WHERE STATE = 'Free';"
+
+const q_ReclaimLog string = "ALTER SYSTEM RECLAIM LOG"
+
 func q_GetLatestFullBackupID(days uint) string {
 	return fmt.Sprintf("SELECT "+
 		"BACKUP_ID "+
