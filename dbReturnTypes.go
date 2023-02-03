@@ -32,3 +32,10 @@ type TruncateStats struct {
 	FilesRemoved uint64
 	BytesRemoved uint64
 }
+
+type LogSegmentsStats struct {
+	FreeSegments             uint64
+	TotalFreeSegmentBytes    uint64
+	NonFreeSegments          uint64
+	TotalNonFreeSegmentBytes uint64
+}

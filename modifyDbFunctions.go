@@ -151,12 +151,54 @@ func (h *hanaUtilClient) RemoveStatServerAlerts(days uint) (uint64, error) {
 	}
 
 	/*Although its unlikely, there is a chance that the not only do no alerts
-	get removed but quailify for the second query, which would lead to a
+	get removed but qualify for the second query, which would lead to a
 	negative uint (which can't happen), so if the second query has a larger
 	total we assume that no alerts we removed and return a 0*/
 	if postRemove <= preRemove {
 		return preRemove - postRemove, nil
 	} else {
 		return 0, nil
+	}
+}
+
+// ReclaimLog removes all log segments in the log volume that are marked as
+// 'Free'. Freeing log segments lowers the amount of used space on the log
+// volume which is especially import in MDC environments. The function will
+// return the number of bytes removed from the log volumes and an error. If an
+// error occurs the returned uint64 will be zero and the error will be populated
+func (h *hanaUtilClient) ReclaimLog() (uint64, error) {
+	/*Get the amount of bytes consumed by free log segments before truncation*/
+	var preBytes uint64
+	row1 := h.db.QueryRow(q_GetFreeLogBytes)
+	err := row1.Scan(&preBytes)
+	if err != nil {
+		/*PromoteError*/
+		return 0, err
+	}
+
+	/*Execute the command*/
+	_, err = h.db.Exec(q_ReclaimLog)
+	if err != nil {
+		/*PromoteError*/
+		return 0, err
+	}
+
+	/*Get the amount of bytes consumed by free log segments post truncation*/
+	var postBytes uint64
+	row2 := h.db.QueryRow(q_GetFreeLogBytes)
+	err = row2.Scan(&postBytes)
+	if err != nil {
+		/*PromoteError*/
+		return 0, err
+	}
+
+	/*There is a small chance that more segments become free and that the amount
+	of free segments following the truncation is actually larger than in the
+	beginning of the operation. In this case a 0 is returned informing the user
+	that there was a reduction of 0 bytes*/
+	if postBytes > preBytes {
+		return 0, nil
+	} else {
+		return preBytes - postBytes, nil
 	}
 }
