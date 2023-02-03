@@ -1,0 +1,23 @@
+name: "Go Coverage"
+on:
+  pull_request:
+  push:
+    branches:
+      # It's important that the action also runs on merge to main
+      - main
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        # default fetch-depth is insufficent to find previous coverage notes
+        fetch-depth: 10
+
+    - uses: gwatts/go-coverage-action@v1
+      id: coverage
+      with:
+        # Optional coverage threshold
+        # use fail-coverage to determine what should happen below this threshold
+        coverage-threshold: 80
