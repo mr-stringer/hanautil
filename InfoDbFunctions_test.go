@@ -160,9 +160,9 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 		wantErr bool
 	}{
 		{"Good01", fields{db1, ""}, BackupSummary{
-			100, 10, 90, 0, 0, 0, 0, 1024000, 512000, 0, 0, 0, 0, 10240, genTime, genTime}, false},
+			100, 10, 90, 0, 0, 0, 0, 1024000, 512000, 0, 0, 0, 0, 10240, genTime, genTime, genTime}, false},
 		{"Good02", fields{db1, ""}, BackupSummary{
-			60, 10, 10, 10, 10, 10, 10, 1024, 1024, 1024, 1024, 1024, 1024, 10240, genTime, genTime}, false},
+			60, 10, 10, 10, 10, 10, 10, 1024, 1024, 1024, 1024, 1024, 1024, 10240, genTime, genTime, genTime}, false},
 		{"BackupCatalogSizeDbError", fields{db1, ""}, BackupSummary{}, true},
 		{"OldestBackupUnexpectedResult", fields{db1, ""}, BackupSummary{}, true},
 		{"OldestBackupScanError", fields{db1, ""}, BackupSummary{}, true},
@@ -175,6 +175,7 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 		{"BackupCountDbError", fields{db1, ""}, BackupSummary{}, true},
 		{"BackupCatalogEntryCountScanError", fields{db1, ""}, BackupSummary{}, true},
 		{"BackupCatalogEntryCountDbError", fields{db1, ""}, BackupSummary{}, true},
+		{"CurrentTimeError", fields{db1, ""}, BackupSummary{}, true},
 	}
 	for _, tt := range tests {
 		/*Set up per case mocking*/
@@ -191,12 +192,14 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			rows4.AddRow("complete data backup", genTime)
 			rows4.AddRow("log backup", genTime)
 			rows5 := mock.NewRows([]string{"BF.BACKUP_SIZE"}).AddRow(10240)
+			rows6 := mock.NewRows([]string{"CURRENT_TIME}"}).AddRow(genTime)
 			/*Now do the sequencing*/
 			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnRows(rows1)
 			mock.ExpectQuery(q_GetBackupCount).WillReturnRows(rows2)
 			mock.ExpectQuery(q_GetBackupSizes).WillReturnRows(rows3)
 			mock.ExpectQuery(q_GetOldestBackups).WillReturnRows(rows4)
 			mock.ExpectQuery(q_GetBackupCatalogSize).WillReturnRows(rows5)
+			mock.ExpectQuery(q_GetDbCurrentTime).WillReturnRows(rows6)
 		case "Good02":
 			rows1 := mock.NewRows([]string{"COUNT"}).AddRow(60)
 			rows2 := mock.NewRows([]string{"COUNT", "ENTRY_TYPE_NAME"})
@@ -217,12 +220,14 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			rows4.AddRow("complete data backup", genTime)
 			rows4.AddRow("log backup", genTime)
 			rows5 := mock.NewRows([]string{"BF.BACKUP_SIZE"}).AddRow(10240)
+			rows6 := mock.NewRows([]string{"CURRENT_TIME}"}).AddRow(genTime)
 			/*Now do the sequencing*/
 			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnRows(rows1)
 			mock.ExpectQuery(q_GetBackupCount).WillReturnRows(rows2)
 			mock.ExpectQuery(q_GetBackupSizes).WillReturnRows(rows3)
 			mock.ExpectQuery(q_GetOldestBackups).WillReturnRows(rows4)
 			mock.ExpectQuery(q_GetBackupCatalogSize).WillReturnRows(rows5)
+			mock.ExpectQuery(q_GetDbCurrentTime).WillReturnRows(rows6)
 		case "OldestBackupUnexpectedResult":
 			rows1 := mock.NewRows([]string{"COUNT"}).AddRow(100)
 			rows2 := mock.NewRows([]string{"COUNT", "ENTRY_TYPE_NAME"})
@@ -343,6 +348,27 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnRows(rows1)
 		case "BackupCatalogEntryCountDbError":
 			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnError(fmt.Errorf("DbError"))
+		case "CurrentTimeError":
+			rows1 := mock.NewRows([]string{"COUNT"}).AddRow(100)
+			rows2 := mock.NewRows([]string{"COUNT", "ENTRY_TYPE_NAME"})
+			rows2.AddRow(10, "complete data backup")
+			rows2.AddRow(90, "log backup")
+			rows3 := mock.NewRows([]string{"TYPES", "BYTES"})
+			rows3.AddRow("complete data backup", 1024000)
+			rows3.AddRow("log backup", 512000)
+			rows4 := mock.NewRows([]string{"ENTRY_TYPE_NAME", "UTC_START_NAME"})
+			rows4.AddRow("complete data backup", genTime)
+			rows4.AddRow("log backup", genTime)
+			rows5 := mock.NewRows([]string{"BF.BACKUP_SIZE"}).AddRow(10240)
+			rows6 := mock.NewRows([]string{"CURRENT_TIME}"})
+			rows6.AddRow(genTime)
+			/*Now do the sequencing*/
+			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnRows(rows1)
+			mock.ExpectQuery(q_GetBackupCount).WillReturnRows(rows2)
+			mock.ExpectQuery(q_GetBackupSizes).WillReturnRows(rows3)
+			mock.ExpectQuery(q_GetOldestBackups).WillReturnRows(rows4)
+			mock.ExpectQuery(q_GetBackupCatalogSize).WillReturnRows(rows5)
+			mock.ExpectQuery(q_GetDbCurrentTime).WillReturnError(fmt.Errorf("DbError"))
 		default:
 			fmt.Printf("No test case matched for %s\n", tt.name)
 			t.Errorf("No test case matched")

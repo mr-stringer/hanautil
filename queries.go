@@ -12,6 +12,8 @@ import "fmt"
 
 const q_GetHanaVersion = "SELECT VERSION FROM \"SYS\".\"M_DATABASE\""
 
+const q_GetDbCurrentTime = "SELECT NOW() AS CURRENT_TIME FROM DUMMY"
+
 const q_GetBackupCatalogEntryCount = "SELECT " +
 	"COUNT(BACKUP_ID) AS COUNT " +
 	"FROM \"SYS\".\"M_BACKUP_CATALOG\""

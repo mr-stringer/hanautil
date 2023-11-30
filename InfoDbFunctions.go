@@ -164,6 +164,13 @@ func (h *HanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 	}
 	bs.SizeOfBackupCatalog = backupCatalogSize
 
+	r6 := h.db.QueryRow(q_GetDbCurrentTime)
+	err = r6.Scan(&bs.CurrentDbTime)
+	if err != nil {
+		/*Promote the error*/
+		return BackupSummary{}, err
+	}
+
 	return bs, nil
 }
 
