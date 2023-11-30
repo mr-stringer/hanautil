@@ -28,6 +28,7 @@ type BackupSummary struct {
 	SizeOfBackupCatalog       uint64
 	OldestFullBackupDate      time.Time
 	OldestLogBackupDate       time.Time
+	CurrentDbTime             time.Time
 }
 
 // TruncateStats provided information regarding the number of files and the
