@@ -1,6 +1,6 @@
 module github.com/mr-stringer/hanautil
 
-go 1.19
+go 1.21
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
