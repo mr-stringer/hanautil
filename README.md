@@ -14,3 +14,5 @@ users creating SQL statements that don't behave as intended. However,
 some of the functions contained in this library are destructive. Destructive
 functions are all documented appropriately and should be used with extreme
 caution.
+
+This module is still in beta but a full production release is expected soon.
