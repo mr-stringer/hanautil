@@ -160,7 +160,7 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 		wantErr bool
 	}{
 		{"Good01", fields{db1, ""}, BackupSummary{
-			100, 10, 90, 0, 0, 0, 0, 1024000, 512000, 0, 0, 0, 0, 10240, genTime, genTime, genTime}, false},
+			100, 10, 90, 30, 0, 0, 0, 1024000, 512000, 0, 0, 0, 0, 10240, genTime, genTime, genTime}, false},
 		{"Good02", fields{db1, ""}, BackupSummary{
 			60, 10, 10, 10, 10, 10, 10, 1024, 1024, 1024, 1024, 1024, 1024, 10240, genTime, genTime, genTime}, false},
 		{"BackupCatalogSizeDbError", fields{db1, ""}, BackupSummary{}, true},
@@ -185,6 +185,7 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			rows2 := mock.NewRows([]string{"COUNT", "ENTRY_TYPE_NAME"})
 			rows2.AddRow(10, "complete data backup")
 			rows2.AddRow(90, "log backup")
+			rows2.AddRow(30, "incremental data backup")
 			rows3 := mock.NewRows([]string{"TYPES", "BYTES"})
 			rows3.AddRow("complete data backup", 1024000)
 			rows3.AddRow("log backup", 512000)
