@@ -583,3 +583,57 @@ func TestHanaUtilClient_GetBackupSummaryBeforeBackupID(t *testing.T) {
 		})
 	}
 }
+
+func TestHanaUtilClient_GetFullBackupId(t *testing.T) {
+	db1, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening mock database connection", err)
+	}
+	defer db1.Close()
+	type fields struct {
+		db  *sql.DB
+		dsn string
+	}
+	type args struct {
+		days int
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{"Good01", fields{db1, ""}, args{14}, "123456789", false},
+		{"DbError", fields{db1, ""}, args{10}, "", true},
+	}
+	for _, tt := range tests {
+		/*per case mocking*/
+		switch {
+		case tt.name == "Good01":
+			r1 := mock.NewRows([]string{"BACKUP_ID"})
+			r1.AddRow("123456789")
+			// expect
+			mock.ExpectQuery(q_GetLatestFullBackupID(uint(tt.args.days))).WillReturnRows(r1)
+		case tt.name == "DbError":
+			mock.ExpectQuery(q_GetLatestFullBackupID(uint(tt.args.days))).WillReturnError(fmt.Errorf("DbError"))
+		default:
+			fmt.Printf("No test case matched for %s\n", tt.name)
+			t.Errorf("No test case matched")
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			h := &HanaUtilClient{
+				db:  tt.fields.db,
+				dsn: tt.fields.dsn,
+			}
+			got, err := h.GetFullBackupId(tt.args.days)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HanaUtilClient.GetFullBackupId() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("HanaUtilClient.GetFullBackupId() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
