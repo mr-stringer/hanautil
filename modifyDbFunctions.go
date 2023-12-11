@@ -53,7 +53,7 @@ func (h *HanaUtilClient) RemoveTraceFile(host, filename string) error {
 
 // TruncateBackupCatalog removes entries from the HANA database backup catalog
 // with the option of permanently destroying associated physical files.
-// A large HANA backup catalog can cause performance issues and is recommeded to
+// A large HANA backup catalog can cause performance issues and is recommended to
 // be <50MiB
 func (h *HanaUtilClient) TruncateBackupCatalog(days int, complete bool) (TruncateStats, error) {
 	tr := TruncateStats{}

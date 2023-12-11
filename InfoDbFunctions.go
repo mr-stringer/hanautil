@@ -50,20 +50,50 @@ func (h *HanaUtilClient) GetTraceFiles(days uint) ([]TraceFile, error) {
 	return TraceFiles, nil
 }
 
-// GetBackupSummary provides a summary of the number of backups along with
+// GetBackupSummary provides a summary of the number of backups along
 // aggregated backup size data found in the backup catalog. The dates of the
 // oldest full and log backups in the catalog are also supplied.
 func (h *HanaUtilClient) GetBackupSummary() (BackupSummary, error) {
-	bs := BackupSummary{}
+	bs, err := h.fetchBackupStats("")
+	if err != nil {
+		return bs, err
+	}
+	return bs, nil
+}
 
-	r1 := h.db.QueryRow(q_GetBackupCatalogEntryCount)
+// GetBackupSummaryBeforeBackupID provides a summary of the number of backups
+// aggregated backup size data found in the backup catalog that occur before a
+// given backup ID. The dates of the oldest full and log backups in the catalog
+// are also supplied.
+func (h *HanaUtilClient) GetBackupSummaryBeforeBackupID(b string) (BackupSummary, error) {
+	bs, err := h.fetchBackupStats(b)
+	if err != nil {
+		return bs, err
+	}
+	return bs, nil
+}
+
+func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error) {
+	bs := BackupSummary{}
+	var q1, q2, q3 string
+	if backupID == "" {
+		q1 = q_GetBackupCatalogEntryCount
+		q2 = q_GetBackupCount
+		q3 = q_GetBackupSizes
+	} else {
+		q1 = f_GetBackupCatalogEntryCountBeforeID(backupID)
+		q2 = f_GetBackupCountBeforeID(backupID)
+		q3 = f_GetBackupSizesBeforeId(backupID)
+	}
+
+	r1 := h.db.QueryRow(q1)
 	err := r1.Scan(&bs.BackupCatalogEntries)
 	if err != nil {
 		/*Promote the error*/
 		return BackupSummary{}, err
 	}
 
-	r2, err := h.db.Query(q_GetBackupCount)
+	r2, err := h.db.Query(q2)
 	if err != nil {
 		/*Promote database error*/
 		return BackupSummary{}, err
@@ -97,7 +127,7 @@ func (h *HanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 		}
 	}
 
-	r3, err := h.db.Query(q_GetBackupSizes)
+	r3, err := h.db.Query(q3)
 	if err != nil {
 		/*Promote database error*/
 		return BackupSummary{}, err
