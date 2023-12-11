@@ -61,6 +61,23 @@ func (h *HanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 	return bs, nil
 }
 
+// GetFullBackupID returns the latest full backup that is older than the given
+// days in the days argument. The output of this may then be used by
+// GetBackupSummaryBeforeBackupID for information about data that could be
+// removed if a trubction is applied.
+func (h *HanaUtilClient) GetFullBackupId(days int) (string, error) {
+	var s string
+
+	r1 := h.db.QueryRow(q_GetLatestFullBackupID(uint(days)))
+	err := r1.Scan(&s)
+	if err != nil {
+		//elevate error
+		return s, err
+	}
+
+	return s, nil
+}
+
 // GetBackupSummaryBeforeBackupID provides a summary of the number of backups
 // aggregated backup size data found in the backup catalog that occur before a
 // given backup ID. The dates of the oldest full and log backups in the catalog
