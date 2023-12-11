@@ -139,3 +139,30 @@ func f_RemoveStatServerAlerts(days uint) string {
 		"\"_SYS_STATISTICS\".\"STATISTICS_ALERTS_BASE\" "+
 		"WHERE ALERT_TIMESTAMP < ADD_DAYS(NOW(), -%d)", days)
 }
+
+func f_GetBackupCatalogEntryCountBeforeID(s string) string {
+	return fmt.Sprintf("SELECT "+
+		"COUNT(BACKUP_ID) AS COUNT "+
+		"FROM \"SYS\".\"M_BACKUP_CATALOG\""+
+		"WHERE BACKUP_ID < '%s'", s)
+}
+
+func f_GetBackupCountBeforeID(s string) string {
+	return fmt.Sprintf("SELECT "+
+		"COUNT(ENTRY_ID) AS COUNT, "+
+		"ENTRY_TYPE_NAME "+
+		"FROM \"SYS\".\"M_BACKUP_CATALOG\" "+
+		"GROUP BY ENTRY_TYPE_NAME"+
+		"WHERE BACKUP_ID < '%s'", s)
+}
+
+func f_GetBackupSizesBeforeId(s string) string {
+	return fmt.Sprintf("SELECT "+
+		"CAT.ENTRY_TYPE_NAME AS TYPE,  "+
+		"SUM(FILES.BACKUP_SIZE) AS BYTES  "+
+		"FROM \"SYS\".\"M_BACKUP_CATALOG\" AS CAT  "+
+		"LEFT JOIN \"SYS\".\"M_BACKUP_CATALOG_FILES\" AS FILES "+
+		"WHERE CAT.BACKUP_ID M '%s' "+
+		"ON CAT.BACKUP_ID = FILES.BACKUP_ID  "+
+		"GROUP BY CAT.ENTRY_TYPE_NAME", s)
+}

@@ -326,7 +326,7 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			rows1 := mock.NewRows([]string{"COUNT"}).AddRow(100)
 			rows2 := mock.NewRows([]string{"COUNT", "ENTRY_TYPE_NAME"})
 			rows2.AddRow(10, "complete data backup")
-			rows2.AddRow(90, "super unexpexted log backup")
+			rows2.AddRow(90, "super unexpected log backup")
 			/*Now do the sequencing*/
 			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnRows(rows1)
 			mock.ExpectQuery(q_GetBackupCount).WillReturnRows(rows2)
@@ -504,6 +504,80 @@ func Test_hanaUtilClient_GetLogSegmentStats(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("hanaUtilClient.GetLogSegmentStats() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHanaUtilClient_GetBackupSummaryBeforeBackupID(t *testing.T) {
+	db1, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening mock database connection", err)
+	}
+	defer db1.Close()
+
+	//Generic timestamp
+	genTime := time.Date(2022, 1, 1, 12, 0, 0, 0, time.UTC)
+	type fields struct {
+		db  *sql.DB
+		dsn string
+	}
+	type args struct {
+		b string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    BackupSummary
+		wantErr bool
+	}{
+		{"Good01", fields{db1, ""}, args{"123"}, BackupSummary{
+			100, 10, 90, 0, 0, 0, 0, 1024000, 512000, 0, 0, 0, 0, 10240, genTime, genTime, genTime}, false},
+		{"Bad", fields{db1, ""}, args{"123"}, BackupSummary{}, true},
+	}
+	for _, tt := range tests {
+		/*per case mocking*/
+		switch {
+		case tt.name == "Good01":
+			rows1 := mock.NewRows([]string{"COUNT"}).AddRow(100)
+			rows2 := mock.NewRows([]string{"COUNT", "ENTRY_TYPE_NAME"})
+			rows2.AddRow(10, "complete data backup")
+			rows2.AddRow(90, "log backup")
+			rows3 := mock.NewRows([]string{"TYPES", "BYTES"})
+			rows3.AddRow("complete data backup", 1024000)
+			rows3.AddRow("log backup", 512000)
+			rows4 := mock.NewRows([]string{"ENTRY_TYPE_NAME", "UTC_START_NAME"})
+			rows4.AddRow("complete data backup", genTime)
+			rows4.AddRow("log backup", genTime)
+			rows5 := mock.NewRows([]string{"BF.BACKUP_SIZE"}).AddRow(10240)
+			rows6 := mock.NewRows([]string{"CURRENT_TIME}"}).AddRow(genTime)
+			/*Now do the sequencing*/
+			mock.ExpectQuery(f_GetBackupCatalogEntryCountBeforeID(tt.args.b)).WillReturnRows(rows1)
+			mock.ExpectQuery(f_GetBackupCountBeforeID(tt.args.b)).WillReturnRows(rows2)
+			mock.ExpectQuery(f_GetBackupSizesBeforeId(tt.args.b)).WillReturnRows(rows3)
+			mock.ExpectQuery(q_GetOldestBackups).WillReturnRows(rows4)
+			mock.ExpectQuery(q_GetBackupCatalogSize).WillReturnRows(rows5)
+			mock.ExpectQuery(q_GetDbCurrentTime).WillReturnRows(rows6)
+		case tt.name == "Bad":
+			mock.ExpectQuery(f_GetBackupCatalogEntryCountBeforeID(tt.args.b)).WillReturnError(fmt.Errorf("DB error"))
+		default:
+			fmt.Printf("No test case matched for %s\n", tt.name)
+			t.Errorf("No test case matched")
+
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			h := &HanaUtilClient{
+				db:  tt.fields.db,
+				dsn: tt.fields.dsn,
+			}
+			got, err := h.GetBackupSummaryBeforeBackupID(tt.args.b)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HanaUtilClient.GetBackupSummaryBeforeBackupID() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("HanaUtilClient.GetBackupSummaryBeforeBackupID() = %v, want %v", got, tt.want)
 			}
 		})
 	}
