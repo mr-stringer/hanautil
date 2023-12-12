@@ -152,8 +152,8 @@ func f_GetBackupCountBeforeID(s string) string {
 		"COUNT(ENTRY_ID) AS COUNT, "+
 		"ENTRY_TYPE_NAME "+
 		"FROM \"SYS\".\"M_BACKUP_CATALOG\" "+
-		"GROUP BY ENTRY_TYPE_NAME"+
-		"WHERE BACKUP_ID < '%s'", s)
+		"WHERE BACKUP_ID < '%s'"+
+		"GROUP BY ENTRY_TYPE_NAME", s)
 }
 
 func f_GetBackupSizesBeforeId(s string) string {
@@ -162,7 +162,7 @@ func f_GetBackupSizesBeforeId(s string) string {
 		"SUM(FILES.BACKUP_SIZE) AS BYTES  "+
 		"FROM \"SYS\".\"M_BACKUP_CATALOG\" AS CAT  "+
 		"LEFT JOIN \"SYS\".\"M_BACKUP_CATALOG_FILES\" AS FILES "+
-		"WHERE CAT.BACKUP_ID M '%s' "+
 		"ON CAT.BACKUP_ID = FILES.BACKUP_ID  "+
+		"WHERE CAT.BACKUP_ID < '%s' "+
 		"GROUP BY CAT.ENTRY_TYPE_NAME", s)
 }
