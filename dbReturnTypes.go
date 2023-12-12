@@ -31,6 +31,16 @@ type BackupSummary struct {
 	CurrentDbTime             time.Time
 }
 
+func (bs *BackupSummary) GetAllBytes() uint64 {
+	return bs.SizeOfFullBackupsBytes +
+		bs.SizeOfLogBackupBytes +
+		bs.SizeOfIncrementalBackups +
+		bs.SizeOfDifferentialBackups +
+		bs.SizeOfLogMissing +
+		bs.SizeOfDataSnapshots +
+		bs.SizeOfBackupCatalog
+}
+
 // TruncateStats provided information regarding the number of files and the
 // amount of data removed by truncating the backup catalog
 type TruncateStats struct {

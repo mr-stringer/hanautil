@@ -64,7 +64,7 @@ func (h *HanaUtilClient) GetBackupSummary() (BackupSummary, error) {
 // GetFullBackupID returns the latest full backup that is older than the given
 // days in the days argument. The output of this may then be used by
 // GetBackupSummaryBeforeBackupID for information about data that could be
-// removed if a trubction is applied.
+// removed if a truncation is applied.
 func (h *HanaUtilClient) GetFullBackupId(days int) (string, error) {
 	var s string
 
