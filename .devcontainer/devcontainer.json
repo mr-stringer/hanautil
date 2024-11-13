@@ -1,0 +1,18 @@
+{
+    "name": "hanautil",
+    "build": { "dockerfile": "Dockerfile" },
+    "containerUser": "engineer",
+    "remoteUser": "engineer",
+    "runArgs": ["--init"],
+    "overrideCommand": false,
+    "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "streetsidesoftware.code-spell-checker",
+                "golang.go"
+            ]
+        }
+    }
+    
+}
