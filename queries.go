@@ -76,6 +76,81 @@ const q_GetFreeLogBytes string = "SELECT " +
 
 const q_ReclaimLog string = "ALTER SYSTEM RECLAIM LOG"
 
+const q_GetDataDefrag string = "SELECT " +
+	"\"SYS\".\"HOST\", " +
+	"\"SYS\".\"PORT\", " +
+	"\"SRV\".\"SERVICE_NAME\", " +
+	"\"SYS\".\"TOTAL_SIZE\", " +
+	"\"SYS\".\"USED_SIZE\" " +
+	"FROM " +
+	"\"SYS\".\"M_VOLUME_FILES\" AS SYS " +
+	"LEFT JOIN \"SYS\".\"M_SERVICES\" AS SRV " +
+	"ON \"SYS\".PORT = \"SRV\".\"PORT\" " +
+	"WHERE \"SYS\".\"FILE_TYPE\" = 'DATA';"
+
+// q_DefragDataVollAll returns the query that will be used to shrink all data
+// volumes on all hosts. It returns an they query and an error. The function
+// take the argument pct, which represents the pct size of the data volume after
+// de-fragmentation. The Pct value may be no lower than 105. Values between 105
+// and 120 are recommended. Although not technically invalid, the function will
+// return an error if pct is set above 150. If the value of pct is 0, the
+// default value of 120 will be applied.
+func q_DefragDataVolAll(pct uint) (string, error) {
+	/*Ensure that pct is OK*/
+	switch {
+	case pct == 0:
+		pct = 120
+	case pct < 105:
+		return "", fmt.Errorf("pct too low, must be between 105 and 105")
+	case pct > 150:
+		return "", fmt.Errorf("pct too low, must be between 105 and 105")
+	}
+	return fmt.Sprintf("ALTER SYSTEM RECLAIM DATAVOLUME %d DEFRAGMENT", pct), nil
+}
+
+// q_DefragDataVoll returns the query that will be used to shrink a specifc data
+// volume on a specific host. It returns an they query and an error.
+// The function takes three arguments host, port and pct. host is used to
+// identify the specific host where the volume to defrag resides. port specifies
+// the port of the data volume to defrag. pct represents the pct size of the
+// data volume after de-fragmentation. The Pct value may be no lower than 105.
+// Values between 105 and 120 are recommended. Although not technically invalid,
+// the function will return an error if pct is set above 150. If the value of
+// pct is 0, the default value of 120 will be applied.
+func q_DefragDataVol(host string, port, pct uint) (string, error) {
+	switch {
+	case host == "":
+		return "", fmt.Errorf("input variable host cannot be empty")
+	case port == 0:
+		return "", fmt.Errorf("input variable port cannot be 0")
+	case pct == 0:
+		pct = 120
+	case pct < 105:
+		return "", fmt.Errorf("pct too low, must be between 105 and 105")
+	case pct > 150:
+		return "", fmt.Errorf("pct too low, must be between 105 and 105")
+	}
+	return fmt.Sprintf("ALTER SYSTEM RECLAIM DATAVOLUME '%s:%d' %d DEFRAGMENT", host, port, pct), nil
+}
+
+func q_GetDataVolume(host string, port uint) string {
+	return fmt.Sprintf("SELECT "+
+		"\"SYS\".\"HOST\", "+
+		"\"SYS\".\"PORT\", "+
+		"\"SRV\".\"SERVICE_NAME\", "+
+		"\"SYS\".\"TOTAL_SIZE\", "+
+		"\"SYS\".\"USED_SIZE\" "+
+		"FROM "+
+		"\"SYS\".\"M_VOLUME_FILES\" AS SYS "+
+		"LEFT JOIN \"SYS\".\"M_SERVICES\" AS SRV "+
+		"ON \"SYS\".\"PORT\" = \"SRV\".\"PORT\" "+
+		"WHERE \"SYS\".\"FILE_TYPE\" = 'DATA' "+
+		"AND "+
+		"\"SYS\".\"HOST\" = '%s' "+
+		"AND "+
+		"\"SYS\".\"PORT\" = '%d';", host, port)
+}
+
 func q_GetLatestFullBackupID(days uint) string {
 	return fmt.Sprintf("SELECT "+
 		"BACKUP_ID "+

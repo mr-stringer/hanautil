@@ -272,3 +272,64 @@ func (h *HanaUtilClient) GetLogSegmentStats() (LogSegmentsStats, error) {
 
 	return ls, nil
 }
+
+// GetFragStats returns a slice of the type DataVolumeFragStats. The stats
+// contain fragmentation stats for all data volumes on the system
+func (h *HanaUtilClient) GetDataFragStats() ([]DataVolumeFragStats, error) {
+	ret := []DataVolumeFragStats{}
+	rows, err := h.db.Query(q_GetDataDefrag)
+	if err != nil {
+		/*Promote Error*/
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		df := DataVolumeFragStats{}
+		err = rows.Scan(&df.Host, &df.Port, &df.Service, &df.DataVolumeBytes, &df.DataVolumeUsedBytes)
+		if err != nil {
+			/*Promote Error*/
+			return nil, err
+		}
+		df.CalculateFragPct()
+		ret = append(ret, df)
+	}
+	return ret, nil
+}
+
+// GetVolFragStats returns a pointer to aa single DataVolmeFragStats of a
+// specific data volume on a specific host. The function also returns an error.
+// If an error is found the returned DataVolumeFragStats will be nil pointer.
+// The function takes two arguments, 'host' and 'port'. If the user is not sure
+// of these the function 'GetDataFragStats' can be used to provide these.
+// If no datavolume matching the host and port is not found, the error will be
+// 'dataVolumeNotFound'
+func (h *HanaUtilClient) GetVolFragStats(host string, port uint) (*DataVolumeFragStats, error) {
+	ret := DataVolumeFragStats{}
+	/* Our query should produce one row, but we run Query and check the */
+	/* returned rows anyway */
+	rows, err := h.db.Query(q_GetDataVolume(host, port))
+	if err != nil {
+		//promote error
+		return nil, err
+	}
+	defer rows.Close()
+
+	c1 := false
+	for rows.Next() {
+		if c1 == true {
+			return nil, fmt.Errorf("more than one row discovered, this is unexpected")
+		}
+		err = rows.Scan(&ret.Host, &ret.Port, &ret.Service, &ret.DataVolumeBytes, &ret.DataVolumeUsedBytes)
+		if err != nil {
+			/*Promote Error*/
+			return nil, err
+		}
+		ret.CalculateFragPct()
+		c1 = true
+	}
+	// Check that a row was found
+	if c1 == false {
+		return nil, fmt.Errorf("dataVolumeNotFound")
+	}
+	return &ret, nil
+}

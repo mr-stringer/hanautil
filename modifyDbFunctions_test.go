@@ -478,3 +478,181 @@ func Test_hanaUtilClient_ReclaimLog(t *testing.T) {
 		})
 	}
 }
+
+func TestHanaUtilClient_DataDefragAll(t *testing.T) {
+	/*Test Setup*/
+	/*Mock DB*/
+	db1, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening mock database connection", err)
+	}
+	defer db1.Close()
+	type fields struct {
+		db  *sql.DB
+		dsn string
+	}
+	type args struct {
+		pct uint
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    int64
+		wantErr bool
+	}{
+		{"Good01", fields{db1, ""}, args{120}, 40960, false},
+		{"Good02", fields{db1, ""}, args{105}, 288161195, false},
+		{"FirstQueryFails", fields{db1, ""}, args{110}, 0, true},
+		{"DefragFails", fields{db1, ""}, args{115}, 0, true},
+		{"SecondQueryFails", fields{db1, ""}, args{125}, 0, true},
+		{"InvalidPct", fields{db1, ""}, args{100}, 0, true},
+	}
+	for _, tt := range tests {
+		/*per test mocking*/
+		switch {
+		case tt.name == "Good01":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("hdb01", 30015, "indexserver", 1024000, 819200)
+			r2 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r2.AddRow("hdb01", 30015, "indexserver", 983040, 819200)
+			// expect
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnRows(r1)
+			mock.ExpectExec(fmt.Sprintf("ALTER SYSTEM RECLAIM DATAVOLUME %d DEFRAGMENT", tt.args.pct)).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnRows(r2)
+		case tt.name == "Good02":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("hanaso01", 34040, "indexserver", 1288490189, 1073741824)
+			r1.AddRow("hanaso02", 34040, "indexserver", 1254191437, 1073420491)
+			r2 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r2.AddRow("hanaso01", 34040, "indexserver", 1127428915, 1073741824)
+			r2.AddRow("hanaso02", 34040, "indexserver", 1127091516, 1073420491)
+			//expect
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnRows(r1)
+			mock.ExpectExec(fmt.Sprintf("ALTER SYSTEM RECLAIM DATAVOLUME %d DEFRAGMENT", tt.args.pct)).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnRows(r2)
+		case tt.name == "FirstQueryFails":
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnError(fmt.Errorf("DbError"))
+		case tt.name == "DefragFails":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("hdb01", 30015, "indexserver", 1024000, 819200)
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnRows(r1)
+			mock.ExpectExec(fmt.Sprintf("ALTER SYSTEM RECLAIM DATAVOLUME %d DEFRAGMENT", tt.args.pct)).WillReturnError(fmt.Errorf("DbError"))
+		case tt.name == "SecondQueryFails":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("hdb01", 30015, "indexserver", 1024000, 819200)
+			// expect
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnRows(r1)
+			mock.ExpectExec(fmt.Sprintf("ALTER SYSTEM RECLAIM DATAVOLUME %d DEFRAGMENT", tt.args.pct)).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnError(fmt.Errorf("DbError"))
+		case tt.name == "InvalidPct":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("hdb01", 30015, "indexserver", 1024000, 819200)
+			// expect
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnRows(r1)
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			h := &HanaUtilClient{
+				db:  tt.fields.db,
+				dsn: tt.fields.dsn,
+			}
+			got, err := h.DataDefragAll(tt.args.pct)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HanaUtilClient.DataDefragAll() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("HanaUtilClient.DataDefragAll() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHanaUtilClient_DataDefrag(t *testing.T) {
+	/*Test Setup*/
+	/*Mock DB*/
+	db1, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening mock database connection", err)
+	}
+	type fields struct {
+		db  *sql.DB
+		dsn string
+	}
+	type args struct {
+		host string
+		port uint
+		pct  uint
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    int64
+		wantErr bool
+	}{
+		{"Good01", fields{db1, ""}, args{"hana01", 30000, 110}, 400000, false},
+		{"FirstQueryFails", fields{db1, ""}, args{"hana01", 30000, 110}, 0, true},
+		{"ExecFails", fields{db1, ""}, args{"hana01", 30000, 110}, 0, true},
+		{"SecondQueryFails", fields{db1, ""}, args{"hana01", 30000, 110}, 0, true},
+	}
+	for _, tt := range tests {
+		/*per test mocking*/
+		switch {
+		case tt.name == "Good01":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow(tt.args.host, tt.args.port, "indexserver", 1500000, 1000000)
+			r2 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r2.AddRow(tt.args.host, tt.args.port, "indexserver", 1100000, 1000000)
+			str, err := q_DefragDataVol(tt.args.host, tt.args.port, tt.args.pct)
+			if err != nil {
+				t.Errorf("HanaUtilClient.DataDefrag not correctly configured")
+				return
+			}
+			// expect
+			mock.ExpectQuery(q_GetDataVolume(tt.args.host, tt.args.port)).WillReturnRows(r1)
+			mock.ExpectExec(str).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetDataVolume(tt.args.host, tt.args.port)).WillReturnRows(r2)
+		case tt.name == "FirstQueryFails":
+			// expect
+			mock.ExpectQuery(q_GetDataVolume(tt.args.host, tt.args.port)).WillReturnError(fmt.Errorf("DbError"))
+		case tt.name == "ExecFails":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow(tt.args.host, tt.args.port, "indexserver", 1500000, 1000000)
+			str, err := q_DefragDataVol(tt.args.host, tt.args.port, tt.args.pct)
+			if err != nil {
+				t.Errorf("HanaUtilClient.DataDefrag not correctly configured")
+				return
+			}
+			// expect
+			mock.ExpectQuery(q_GetDataVolume(tt.args.host, tt.args.port)).WillReturnRows(r1)
+			mock.ExpectExec(str).WillReturnError(fmt.Errorf("DbError"))
+		case tt.name == "SecondQueryFails":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow(tt.args.host, tt.args.port, "indexserver", 1500000, 1000000)
+			str, err := q_DefragDataVol(tt.args.host, tt.args.port, tt.args.pct)
+			if err != nil {
+				t.Errorf("HanaUtilClient.DataDefrag not correctly configured")
+				return
+			}
+			// expect
+			mock.ExpectQuery(q_GetDataVolume(tt.args.host, tt.args.port)).WillReturnRows(r1)
+			mock.ExpectExec(str).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(q_GetDataVolume(tt.args.host, tt.args.port)).WillReturnError(fmt.Errorf("DbError"))
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			h := &HanaUtilClient{
+				db:  tt.fields.db,
+				dsn: tt.fields.dsn,
+			}
+			got, err := h.DataDefrag(tt.args.host, tt.args.port, tt.args.pct)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HanaUtilClient.DataDefrag() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("HanaUtilClient.DataDefrag() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

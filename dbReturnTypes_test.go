@@ -61,3 +61,38 @@ func TestBackupSummary_GetAllBytes(t *testing.T) {
 		})
 	}
 }
+
+func TestDataVolumeFragStats_CalculateFragPct(t *testing.T) {
+	type fields struct {
+		Host                string
+		Port                uint64
+		Service             string
+		DataVolumeBytes     uint64
+		DataVolumeUsedBytes uint64
+		FragPct             float32
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   float32
+	}{
+		{"Good01", fields{"hdb1", 30013, "nameserver", 10000000, 8000000, 0}, 20.0},
+		{"Good02", fields{"hdb1", 30013, "nameserver", 2048000000, 921600000, 0}, 55.0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &DataVolumeFragStats{
+				Host:                tt.fields.Host,
+				Port:                tt.fields.Port,
+				Service:             tt.fields.Service,
+				DataVolumeBytes:     tt.fields.DataVolumeBytes,
+				DataVolumeUsedBytes: tt.fields.DataVolumeUsedBytes,
+				FragPct:             tt.fields.FragPct,
+			}
+			d.CalculateFragPct()
+			if tt.want != d.FragPct {
+				t.Errorf("TestDataVolumeFragStats.CalculateFragPct.FragPct = %f, want %f", d.FragPct, tt.want)
+			}
+		})
+	}
+}

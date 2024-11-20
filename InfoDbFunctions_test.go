@@ -110,7 +110,7 @@ func Test_hanaUtilClient_GetTraceFiles(t *testing.T) {
 			rows.AddRow("hana01", "indexserver_hana01.30001.000.trc", 128000, genTime)
 			mock.ExpectQuery(f_GetTraceFiles(7)).WillReturnRows(rows)
 		case tt.name == "DbError":
-			mock.ExpectQuery(f_GetTraceFiles(7)).WillReturnError(fmt.Errorf("DbError"))
+			mock.ExpectQuery(f_GetTraceFiles(7)).WillReturnError(fmt.Errorf("dbError"))
 		case tt.name == "ScanError":
 			row := sqlmock.NewRows([]string{"HOST", "FILE_NAME", "FILE_SIZE", "FILE_MTIME"})
 			row.AddRow("hana01", "nameserver_hana01.30001.000.trc", 64000.1, genTime)
@@ -273,7 +273,7 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnRows(rows1)
 			mock.ExpectQuery(q_GetBackupCount).WillReturnRows(rows2)
 			mock.ExpectQuery(q_GetBackupSizes).WillReturnRows(rows3)
-			mock.ExpectQuery(q_GetOldestBackups).WillReturnError(fmt.Errorf("DbError"))
+			mock.ExpectQuery(q_GetOldestBackups).WillReturnError(fmt.Errorf("dbError"))
 		case "BackupCatalogSizeDbError":
 			rows1 := mock.NewRows([]string{"COUNT"}).AddRow(100)
 			rows2 := mock.NewRows([]string{"COUNT", "ENTRY_TYPE_NAME"})
@@ -290,7 +290,7 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			mock.ExpectQuery(q_GetBackupCount).WillReturnRows(rows2)
 			mock.ExpectQuery(q_GetBackupSizes).WillReturnRows(rows3)
 			mock.ExpectQuery(q_GetOldestBackups).WillReturnRows(rows4)
-			mock.ExpectQuery(q_GetBackupCatalogSize).WillReturnError(fmt.Errorf("DbError"))
+			mock.ExpectQuery(q_GetBackupCatalogSize).WillReturnError(fmt.Errorf("dbError"))
 		case "BackupSizeUnexpectedResult":
 			rows1 := mock.NewRows([]string{"COUNT"}).AddRow(100)
 			rows2 := mock.NewRows([]string{"COUNT", "ENTRY_TYPE_NAME"})
@@ -322,7 +322,7 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			/*Now do the sequencing*/
 			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnRows(rows1)
 			mock.ExpectQuery(q_GetBackupCount).WillReturnRows(rows2)
-			mock.ExpectQuery(q_GetBackupSizes).WillReturnError(fmt.Errorf("DbError"))
+			mock.ExpectQuery(q_GetBackupSizes).WillReturnError(fmt.Errorf("dbError"))
 		case "GetBackupCountUnexpectedResult":
 			rows1 := mock.NewRows([]string{"COUNT"}).AddRow(100)
 			rows2 := mock.NewRows([]string{"COUNT", "ENTRY_TYPE_NAME"})
@@ -342,13 +342,13 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			rows1 := mock.NewRows([]string{"COUNT"}).AddRow(100)
 			/*Now do the sequencing*/
 			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnRows(rows1)
-			mock.ExpectQuery(q_GetBackupCount).WillReturnError(fmt.Errorf("DbError"))
+			mock.ExpectQuery(q_GetBackupCount).WillReturnError(fmt.Errorf("dbError"))
 		case "BackupCatalogEntryCountScanError":
 			rows1 := mock.NewRows([]string{"COUNT"}).AddRow("-1")
 			/*Now do the sequencing*/
 			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnRows(rows1)
 		case "BackupCatalogEntryCountDbError":
-			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnError(fmt.Errorf("DbError"))
+			mock.ExpectQuery(q_GetBackupCatalogEntryCount).WillReturnError(fmt.Errorf("dbError"))
 		case "CurrentTimeError":
 			rows1 := mock.NewRows([]string{"COUNT"}).AddRow(100)
 			rows2 := mock.NewRows([]string{"COUNT", "ENTRY_TYPE_NAME"})
@@ -369,7 +369,7 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 			mock.ExpectQuery(q_GetBackupSizes).WillReturnRows(rows3)
 			mock.ExpectQuery(q_GetOldestBackups).WillReturnRows(rows4)
 			mock.ExpectQuery(q_GetBackupCatalogSize).WillReturnRows(rows5)
-			mock.ExpectQuery(q_GetDbCurrentTime).WillReturnError(fmt.Errorf("DbError"))
+			mock.ExpectQuery(q_GetDbCurrentTime).WillReturnError(fmt.Errorf("dbError"))
 		default:
 			fmt.Printf("No test case matched for %s\n", tt.name)
 			t.Errorf("No test case matched")
@@ -479,7 +479,7 @@ func Test_hanaUtilClient_GetLogSegmentStats(t *testing.T) {
 			rows1 := mock.NewRows([]string{"STATE", "SEGMENTS", "BYTES"})
 			mock.ExpectQuery(q_GetLogSegmentStats).WillReturnRows(rows1)
 		case "DbError":
-			mock.ExpectQuery(q_GetLogSegmentStats).WillReturnError(fmt.Errorf("DbError"))
+			mock.ExpectQuery(q_GetLogSegmentStats).WillReturnError(fmt.Errorf("dbError"))
 		case "ScanError":
 			rows1 := mock.NewRows([]string{"STATE", "SEGMENTS", "BYTES"})
 			rows1.AddRow("Free", 10, "10240.12")
@@ -616,7 +616,7 @@ func TestHanaUtilClient_GetFullBackupId(t *testing.T) {
 			// expect
 			mock.ExpectQuery(q_GetLatestFullBackupID(uint(tt.args.days))).WillReturnRows(r1)
 		case tt.name == "DbError":
-			mock.ExpectQuery(q_GetLatestFullBackupID(uint(tt.args.days))).WillReturnError(fmt.Errorf("DbError"))
+			mock.ExpectQuery(q_GetLatestFullBackupID(uint(tt.args.days))).WillReturnError(fmt.Errorf("dbError"))
 		default:
 			fmt.Printf("No test case matched for %s\n", tt.name)
 			t.Errorf("No test case matched")
@@ -633,6 +633,132 @@ func TestHanaUtilClient_GetFullBackupId(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("HanaUtilClient.GetFullBackupId() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHanaUtilClient_GetDataFragStats(t *testing.T) {
+	db1, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening mock database connection", err)
+	}
+	defer db1.Close()
+	type fields struct {
+		db  *sql.DB
+		dsn string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    []DataVolumeFragStats
+		wantErr bool
+	}{
+		{"Good01", fields{db1, ""}, []DataVolumeFragStats{
+			{"hdb01", 30015, "indexserver", 1024000, 819200, 20},
+		}, false},
+		{"Good02", fields{db1, ""}, []DataVolumeFragStats{
+			{"hdb01", 30040, "indexserver", 2190433320960, 1697585823744, 22.5},
+			{"hdb01", 30041, "xsengine", 10737418240, 10200547328, 5},
+		}, false},
+		{"DbError", fields{db1, ""}, nil, true},
+		{"ScanError", fields{db1, ""}, nil, true},
+	}
+	for _, tt := range tests {
+		/*per case mocks*/
+		switch {
+		case tt.name == "Good01":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("hdb01", 30015, "indexserver", 1024000, 819200)
+			// expect
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnRows(r1)
+		case tt.name == "Good02":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("hdb01", 30040, "indexserver", 2190433320960, 1697585823744)
+			r1.AddRow("hdb01", 30041, "xsengine", 10737418240, 10200547328)
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnRows(r1)
+		case tt.name == "DbError":
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnError(fmt.Errorf("dbError"))
+		case tt.name == "ScanError":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("hdb01", 30040, "indexserver", 2190433320960, 1697585823744.5)
+			mock.ExpectQuery(q_GetDataDefrag).WillReturnRows(r1)
+
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			h := &HanaUtilClient{
+				db:  tt.fields.db,
+				dsn: tt.fields.dsn,
+			}
+			got, err := h.GetDataFragStats()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HanaUtilClient.GetDataFragStats() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("HanaUtilClient.GetDataFragStats() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHanaUtilClient_GetVolFragStats(t *testing.T) {
+	db1, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening mock database connection", err)
+	}
+	defer db1.Close()
+	type fields struct {
+		db  *sql.DB
+		dsn string
+	}
+	type args struct {
+		host string
+		port uint
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *DataVolumeFragStats
+		wantErr bool
+	}{
+		{"Good01", fields{db1, ""}, args{"demo", 30003}, &DataVolumeFragStats{"demo", 30003, "indexserver", 1000000000, 900000000, 10.0}, false},
+		{"DbError", fields{db1, ""}, args{"hdbsrv01", 35000}, nil, true},
+		{"TooManyResults", fields{db1, ""}, args{"demo", 30003}, nil, true},
+		{"ScanError", fields{db1, ""}, args{"myhost", 36903}, nil, true},
+	}
+	for _, tt := range tests {
+		//per case mocking
+		switch {
+		case tt.name == "Good01":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("demo", 30003, "indexserver", 1000000000, 900000000)
+			mock.ExpectQuery(q_GetDataVolume(tt.args.host, tt.args.port)).WillReturnRows(r1)
+		case tt.name == "DbError":
+			mock.ExpectQuery(q_GetDataVolume(tt.args.host, tt.args.port)).WillReturnError(fmt.Errorf("DbError"))
+		case tt.name == "TooManyResults":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("demo", 30003, "indexserver", 1000000000, 900000000)
+			r1.AddRow("demo", 30003, "indexserver", 9000000000, 5523434543)
+			mock.ExpectQuery(q_GetDataVolume(tt.args.host, tt.args.port)).WillReturnRows(r1)
+		case tt.name == "ScanError":
+			r1 := mock.NewRows([]string{"HOST", "PORT", "SERVICE_NAME", "TOTAL_SIZE", "USED_SIZE"})
+			r1.AddRow("myhost", "NAN", "indexserver", 1000000000, 90000000.10)
+			mock.ExpectQuery(q_GetDataVolume(tt.args.host, tt.args.port)).WillReturnRows(r1)
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			h := &HanaUtilClient{
+				db:  tt.fields.db,
+				dsn: tt.fields.dsn,
+			}
+			got, err := h.GetVolFragStats(tt.args.host, tt.args.port)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HanaUtilClient.GetVolFragStats() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("HanaUtilClient.GetVolFragStats() = %v, want %v", got, tt.want)
 			}
 		})
 	}

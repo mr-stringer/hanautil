@@ -56,3 +56,21 @@ type LogSegmentsStats struct {
 	NonFreeSegments          uint64
 	TotalNonFreeSegmentBytes uint64
 }
+
+// DataVolumeFragStats provides information about the fragmentation of data
+// disks. Remember that with SAP HANA, data volume fragmentation really means
+// the free space as a percentage of the data volume. A high amount of free
+// space may occur for many reasons such as data deletion, large merge
+// operations or other optimisations.
+type DataVolumeFragStats struct {
+	Host                string
+	Port                uint64
+	Service             string
+	DataVolumeBytes     uint64
+	DataVolumeUsedBytes uint64
+	FragPct             float32
+}
+
+func (d *DataVolumeFragStats) CalculateFragPct() {
+	d.FragPct = ((float32(d.DataVolumeBytes) - float32(d.DataVolumeUsedBytes)) / float32(d.DataVolumeBytes)) * 100
+}

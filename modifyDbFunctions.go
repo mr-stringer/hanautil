@@ -202,3 +202,81 @@ func (h *HanaUtilClient) ReclaimLog() (uint64, error) {
 		return preBytes - postBytes, nil
 	}
 }
+
+// DataDefragAll will defragment all data volumes on all hosts. Each data volume
+// will be resized using the pct argument. The pct (percent) argument represents
+// the require size of the data volume. For example, if the data in the data
+// volume were 100GiB, after defragmenting, it would be 120GiB, leaving 20% free
+// space in the data volume. pct must be between 105 and 150. The function will
+// return the number of bytes saved in the defrag process. If the returned
+// is negative, it means that more space was allocated than previously. An
+// error is also return which will to record any failure. If an error is
+// present, then the number of bytes returned should be 0.
+func (h *HanaUtilClient) DataDefragAll(pct uint) (int64, error) {
+	/*collect 'before' stats*/
+	preStats, err := h.GetDataFragStats()
+	if err != nil {
+		/*promote err*/
+		return 0, err
+	}
+
+	q, err := q_DefragDataVolAll(pct)
+	if err != nil {
+		/*promote err*/
+		return 0, err
+	}
+
+	_, err = h.db.Exec(q)
+	if err != nil {
+		/*promote err*/
+		return 0, err
+	}
+
+	postStats, err := h.GetDataFragStats()
+	if err != nil {
+		/*promote err*/
+		return 0, err
+	}
+
+	var preDataSize uint64
+	for _, v := range preStats {
+		preDataSize += v.DataVolumeBytes
+	}
+	var postDataSize uint64
+	for _, v := range postStats {
+		postDataSize += v.DataVolumeBytes
+	}
+
+	return int64(preDataSize) - int64(postDataSize), nil
+}
+
+// DataDefrag will defragment a specific data volumes on a specific host. The
+// data volume will be resized using the pct argument. The pct (percent)
+// argument represents the require size of the data volume. For example, if the
+// data in the data volume were 100GiB, after defragmenting, it would be 120GiB,
+// leaving 20% free space in the data volume. pct must be between 105 and 150.
+// The function will return the number of bytes saved in the defrag process.
+// If the returned is negative, it means that more space was allocated than
+// previously. An error is also return which will to record any failure. If an
+// error is present, then the number of bytes returned should be 0.
+func (h *HanaUtilClient) DataDefrag(host string, port, pct uint) (int64, error) {
+	/*Ensure the host and port are valid*/
+	preStats, err := h.GetVolFragStats(host, port)
+	if err != nil {
+		/*promote error*/
+		return 0, err
+	}
+	_, err = h.db.Exec(q_DefragDataVol(host, port, pct))
+	if err != nil {
+		/*promote error*/
+		return 0, err
+
+	}
+	PostStats, err := h.GetVolFragStats(host, port)
+	if err != nil {
+		/*promote error*/
+		return 0, err
+	}
+
+	return int64(preStats.DataVolumeBytes) - int64(PostStats.DataVolumeBytes), nil
+}
