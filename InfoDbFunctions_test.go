@@ -156,26 +156,26 @@ func Test_hanaUtilClient_GetBackupSummary(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		want    BackupSummary
+		want    *BackupSummary
 		wantErr bool
 	}{
-		{"Good01", fields{db1, ""}, BackupSummary{
+		{"Good01", fields{db1, ""}, &BackupSummary{
 			100, 10, 90, 30, 0, 0, 0, 1024000, 512000, 0, 0, 0, 0, 10240, genTime, genTime, genTime}, false},
-		{"Good02", fields{db1, ""}, BackupSummary{
+		{"Good02", fields{db1, ""}, &BackupSummary{
 			60, 10, 10, 10, 10, 10, 10, 1024, 1024, 1024, 1024, 1024, 1024, 10240, genTime, genTime, genTime}, false},
-		{"BackupCatalogSizeDbError", fields{db1, ""}, BackupSummary{}, true},
-		{"OldestBackupUnexpectedResult", fields{db1, ""}, BackupSummary{}, true},
-		{"OldestBackupScanError", fields{db1, ""}, BackupSummary{}, true},
-		{"OldestBackupDbError", fields{db1, ""}, BackupSummary{}, true},
-		{"BackupSizeUnexpectedResult", fields{db1, ""}, BackupSummary{}, true},
-		{"BackupSizeDbError", fields{db1, ""}, BackupSummary{}, true},
-		{"BackupSizeScanError", fields{db1, ""}, BackupSummary{}, true},
-		{"GetBackupCountUnexpectedResult", fields{db1, ""}, BackupSummary{}, true},
-		{"BackupCountScanError", fields{db1, ""}, BackupSummary{}, true},
-		{"BackupCountDbError", fields{db1, ""}, BackupSummary{}, true},
-		{"BackupCatalogEntryCountScanError", fields{db1, ""}, BackupSummary{}, true},
-		{"BackupCatalogEntryCountDbError", fields{db1, ""}, BackupSummary{}, true},
-		{"CurrentTimeError", fields{db1, ""}, BackupSummary{}, true},
+		{"BackupCatalogSizeDbError", fields{db1, ""}, nil, true},
+		{"OldestBackupUnexpectedResult", fields{db1, ""}, nil, true},
+		{"OldestBackupScanError", fields{db1, ""}, nil, true},
+		{"OldestBackupDbError", fields{db1, ""}, nil, true},
+		{"BackupSizeUnexpectedResult", fields{db1, ""}, nil, true},
+		{"BackupSizeDbError", fields{db1, ""}, nil, true},
+		{"BackupSizeScanError", fields{db1, ""}, nil, true},
+		{"GetBackupCountUnexpectedResult", fields{db1, ""}, nil, true},
+		{"BackupCountScanError", fields{db1, ""}, nil, true},
+		{"BackupCountDbError", fields{db1, ""}, nil, true},
+		{"BackupCatalogEntryCountScanError", fields{db1, ""}, nil, true},
+		{"BackupCatalogEntryCountDbError", fields{db1, ""}, nil, true},
+		{"CurrentTimeError", fields{db1, ""}, nil, true},
 	}
 	for _, tt := range tests {
 		/*Set up per case mocking*/
@@ -458,14 +458,14 @@ func Test_hanaUtilClient_GetLogSegmentStats(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		want    LogSegmentsStats
+		want    *LogSegmentsStats
 		wantErr bool
 	}{
-		{"Good", fields{db1, ""}, LogSegmentsStats{10, 10240, 50, 51200}, false},
-		{"NoRows", fields{db1, ""}, LogSegmentsStats{}, false},
-		{"DbError", fields{db1, ""}, LogSegmentsStats{}, true},
-		{"ScanError", fields{db1, ""}, LogSegmentsStats{}, true},
-		{"UnexpectedReturn", fields{db1, ""}, LogSegmentsStats{}, true},
+		{"Good", fields{db1, ""}, &LogSegmentsStats{10, 10240, 50, 51200}, false},
+		{"NoRows", fields{db1, ""}, &LogSegmentsStats{}, false},
+		{"DbError", fields{db1, ""}, nil, true},
+		{"ScanError", fields{db1, ""}, nil, true},
+		{"UnexpectedReturn", fields{db1, ""}, nil, true},
 	}
 	for _, tt := range tests {
 		/*Set up per case mocking*/
@@ -530,12 +530,12 @@ func TestHanaUtilClient_GetBackupSummaryBeforeBackupID(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    BackupSummary
+		want    *BackupSummary
 		wantErr bool
 	}{
-		{"Good01", fields{db1, ""}, args{"123"}, BackupSummary{
+		{"Good01", fields{db1, ""}, args{"123"}, &BackupSummary{
 			100, 10, 90, 0, 0, 0, 0, 1024000, 512000, 0, 0, 0, 0, 10240, genTime, genTime, genTime}, false},
-		{"Bad", fields{db1, ""}, args{"123"}, BackupSummary{}, true},
+		{"Bad", fields{db1, ""}, args{"123"}, nil, true},
 	}
 	for _, tt := range tests {
 		/*per case mocking*/
