@@ -53,9 +53,22 @@ func (h *HanaUtilClient) RemoveTraceFile(host, filename string) error {
 
 // TruncateBackupCatalog removes entries from the HANA database backup catalog
 // with the option of permanently destroying associated physical files.
-// A large HANA backup catalog can cause performance issues and is recommended to
-// be <50MiB
-func (h *HanaUtilClient) TruncateBackupCatalog(days int, complete bool) (TruncateStats, error) {
+// A large HANA backup catalog can cause performance issues and is recommended
+// to be <50MiB
+//
+// The function take two arguments, `days` and `complete`. The `days` argument
+// sets how many days worth of backup catalog to keep (days are calculated for
+// the time of the last full backup). The `complete` argument sets whether the
+// backup files removed from the catalog should also be deleted from their
+// location, which could either be on disk or within an enterprise backup
+// product using backint. If `complete` is set to `true`, the backup files will
+// be removed.
+//
+// The function returns a point to the type `TruncateStats` and an error. If the
+// function is a successful, the pointer to `TruncateStats` will be populated
+// and the error will be nil. However, if the function fails, the pointer to
+// `TruncateStats` will be nil and the error will be populated.
+func (h *HanaUtilClient) TruncateBackupCatalog(days int, complete bool) (*TruncateStats, error) {
 	tr := TruncateStats{}
 	//First find the last full backup that is older than the given days
 	r1 := h.db.QueryRow(q_GetLatestFullBackupID(uint(days)))
@@ -63,7 +76,7 @@ func (h *HanaUtilClient) TruncateBackupCatalog(days int, complete bool) (Truncat
 	err := r1.Scan(&backupId)
 	if err != nil {
 		/*PromoteError*/
-		return tr, err
+		return nil, err
 	}
 
 	var truncFiles uint64
@@ -72,20 +85,20 @@ func (h *HanaUtilClient) TruncateBackupCatalog(days int, complete bool) (Truncat
 	err = r2.Scan(&truncFiles, &truncBytes)
 	if err != nil {
 		/*PromoteError*/
-		return tr, err
+		return nil, err
 	}
 
 	if complete {
 		_, err = h.db.Exec(f_GetBackupDeleteComplete(backupId))
 		if err != nil {
 			/*Promote error*/
-			return tr, err
+			return nil, err
 		}
 	} else {
 		_, err = h.db.Exec(f_GetBackupDelete(backupId))
 		if err != nil {
 			/*Promote error*/
-			return tr, err
+			return nil, err
 		}
 	}
 
@@ -97,7 +110,7 @@ func (h *HanaUtilClient) TruncateBackupCatalog(days int, complete bool) (Truncat
 	err = r3.Scan(&postTruncFiles, &postTruncBytes)
 	if err != nil {
 		/*PromoteError*/
-		return TruncateStats{}, err
+		return nil, err
 	}
 
 	/*Always report number of removed files / entries */
@@ -120,13 +133,14 @@ func (h *HanaUtilClient) TruncateBackupCatalog(days int, complete bool) (Truncat
 		tr.BytesRemoved = 0
 	}
 
-	return tr, nil
+	return &tr, nil
 }
 
 // RemoveStatServerAlerts removes entries from the
 // SYS_STATISTICS.STATISTICS_ALERTS_BASE table that are older than the number of
 // days given in the 'days' argument.
-// The function returns a uint64 which
+// The function returns a uint64 and an error. If the function is successful,
+// the uint64 represents which represents the number of alerts removed from
 func (h *HanaUtilClient) RemoveStatServerAlerts(days uint) (uint64, error) {
 	var preRemove uint64
 	r1 := h.db.QueryRow(f_GetStatServerAlerts(days))

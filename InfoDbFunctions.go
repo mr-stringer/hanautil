@@ -53,10 +53,10 @@ func (h *HanaUtilClient) GetTraceFiles(days uint) ([]TraceFile, error) {
 // GetBackupSummary provides a summary of the number of backups along
 // aggregated backup size data found in the backup catalog. The dates of the
 // oldest full and log backups in the catalog are also supplied.
-func (h *HanaUtilClient) GetBackupSummary() (BackupSummary, error) {
+func (h *HanaUtilClient) GetBackupSummary() (*BackupSummary, error) {
 	bs, err := h.fetchBackupStats("")
 	if err != nil {
-		return bs, err
+		return nil, err
 	}
 	return bs, nil
 }
@@ -82,15 +82,15 @@ func (h *HanaUtilClient) GetFullBackupId(days int) (string, error) {
 // aggregated backup size data found in the backup catalog that occur before a
 // given backup ID. The dates of the oldest full and log backups in the catalog
 // are also supplied.
-func (h *HanaUtilClient) GetBackupSummaryBeforeBackupID(b string) (BackupSummary, error) {
+func (h *HanaUtilClient) GetBackupSummaryBeforeBackupID(b string) (*BackupSummary, error) {
 	bs, err := h.fetchBackupStats(b)
 	if err != nil {
-		return bs, err
+		return nil, err
 	}
 	return bs, nil
 }
 
-func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error) {
+func (h *HanaUtilClient) fetchBackupStats(backupID string) (*BackupSummary, error) {
 	bs := BackupSummary{}
 	var q1, q2, q3 string
 	if backupID == "" {
@@ -107,13 +107,13 @@ func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error
 	err := r1.Scan(&bs.BackupCatalogEntries)
 	if err != nil {
 		/*Promote the error*/
-		return BackupSummary{}, err
+		return nil, err
 	}
 
 	r2, err := h.db.Query(q2)
 	if err != nil {
 		/*Promote database error*/
-		return BackupSummary{}, err
+		return nil, err
 	}
 	defer r2.Close()
 
@@ -123,7 +123,7 @@ func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error
 		err = r2.Scan(&tmpCount, &tmpType)
 		if err != nil {
 			/*PromoteError*/
-			return BackupSummary{}, err
+			return nil, err
 		}
 
 		switch tmpType {
@@ -140,14 +140,14 @@ func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error
 		case "data snapshot":
 			bs.DataSnapshots = tmpCount
 		default:
-			return BackupSummary{}, fmt.Errorf("UnexpectedBackupType")
+			return nil, fmt.Errorf("UnexpectedBackupType")
 		}
 	}
 
 	r3, err := h.db.Query(q3)
 	if err != nil {
 		/*Promote database error*/
-		return BackupSummary{}, err
+		return nil, err
 	}
 	defer r3.Close()
 
@@ -157,7 +157,7 @@ func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error
 		err = r3.Scan(&tmpType, &tmpCount)
 		if err != nil {
 			/*PromoteError*/
-			return BackupSummary{}, err
+			return nil, err
 		}
 		switch tmpType {
 		case "complete data backup":
@@ -173,14 +173,14 @@ func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error
 		case "data snapshot":
 			bs.SizeOfDataSnapshots = tmpCount
 		default:
-			return BackupSummary{}, fmt.Errorf("UnexpectedBackupType")
+			return nil, fmt.Errorf("UnexpectedBackupType")
 		}
 	}
 
 	r4, err := h.db.Query(q_GetOldestBackups)
 	if err != nil {
 		/*Promote database error*/
-		return BackupSummary{}, err
+		return nil, err
 	}
 	defer r4.Close()
 
@@ -190,7 +190,7 @@ func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error
 		err = r4.Scan(&tmpType, &tmpDate)
 		if err != nil {
 			/*Promote error*/
-			return BackupSummary{}, err
+			return nil, err
 		}
 		switch tmpType {
 		case "complete data backup":
@@ -198,7 +198,7 @@ func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error
 		case "log backup":
 			bs.OldestLogBackupDate = tmpDate
 		default:
-			return BackupSummary{}, fmt.Errorf("UnexpectedBackupType")
+			return nil, fmt.Errorf("UnexpectedBackupType")
 		}
 	}
 
@@ -207,7 +207,7 @@ func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error
 	err = r5.Scan(&backupCatalogSize)
 	if err != nil {
 		/*PromoteError*/
-		return BackupSummary{}, err
+		return nil, err
 	}
 	bs.SizeOfBackupCatalog = backupCatalogSize
 
@@ -215,10 +215,10 @@ func (h *HanaUtilClient) fetchBackupStats(backupID string) (BackupSummary, error
 	err = r6.Scan(&bs.CurrentDbTime)
 	if err != nil {
 		/*Promote the error*/
-		return BackupSummary{}, err
+		return nil, err
 	}
 
-	return bs, nil
+	return &bs, nil
 }
 
 // GetStatServerAlerts is a function that reports the number of historic alerts
@@ -241,12 +241,12 @@ func (h *HanaUtilClient) GetStatServerAlerts(days uint) (uint, error) {
 
 // GetLogSegmentStats provides information about the free and non-free
 // log segments in the HANA log volume
-func (h *HanaUtilClient) GetLogSegmentStats() (LogSegmentsStats, error) {
+func (h *HanaUtilClient) GetLogSegmentStats() (*LogSegmentsStats, error) {
 	ls := LogSegmentsStats{}
 	r1, err := h.db.Query(q_GetLogSegmentStats)
 	if err != nil {
 		/*PromoteError*/
-		return LogSegmentsStats{}, err
+		return nil, err
 	}
 
 	for r1.Next() {
@@ -255,7 +255,7 @@ func (h *HanaUtilClient) GetLogSegmentStats() (LogSegmentsStats, error) {
 		err := r1.Scan(&tmpState, &tmpSegments, &tmpBytes)
 		if err != nil {
 			/*PromoteError*/
-			return LogSegmentsStats{}, err
+			return nil, err
 		}
 		switch tmpState {
 		case "Free":
@@ -265,10 +265,10 @@ func (h *HanaUtilClient) GetLogSegmentStats() (LogSegmentsStats, error) {
 			ls.NonFreeSegments = tmpSegments
 			ls.TotalNonFreeSegmentBytes = tmpBytes
 		default:
-			return LogSegmentsStats{}, fmt.Errorf("UnexpectedDbReturn")
+			return nil, fmt.Errorf("UnexpectedDbReturn")
 		}
 
 	}
 
-	return ls, nil
+	return &ls, nil
 }

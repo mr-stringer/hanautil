@@ -29,23 +29,23 @@ func Test_hanaUtilClient_TruncateBackupCatalog(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    TruncateStats
+		want    *TruncateStats
 		wantErr bool
 	}{
-		{"Good", fields{db1, ""}, args{28, false}, TruncateStats{100, 0}, false},
-		{"GoodPartialDelete", fields{db1, ""}, args{28, false}, TruncateStats{99, 0}, false},
-		{"GoodNoDelete", fields{db1, ""}, args{31, false}, TruncateStats{100, 0}, false},
-		{"GoodComplete", fields{db1, ""}, args{31, true}, TruncateStats{99, 99999}, false},
-		{"GoodCompleteNoDelete", fields{db1, ""}, args{31, true}, TruncateStats{75, 555444}, false},
-		{"GoodCompletePartialDelete", fields{db1, ""}, args{28, true}, TruncateStats{1000, 1000000}, false},
-		{"2ndGetTruncateDbError", fields{db1, ""}, args{28, false}, TruncateStats{}, true},
-		{"2ndGetTruncateScanError", fields{db1, ""}, args{28, false}, TruncateStats{}, true},
-		{"TruncateDbError", fields{db1, ""}, args{90, false}, TruncateStats{}, true},
-		{"TruncateCompleteDbError", fields{db1, ""}, args{90, true}, TruncateStats{}, true},
-		{"1stGetTruncateDbError", fields{db1, ""}, args{60, false}, TruncateStats{}, true},
-		{"1stGetTruncateScanError", fields{db1, ""}, args{60, false}, TruncateStats{}, true},
-		{"GetBackupIdScanError", fields{db1, ""}, args{14, false}, TruncateStats{}, true},
-		{"GetBackupIdDbError", fields{db1, ""}, args{14, false}, TruncateStats{}, true},
+		{"Good", fields{db1, ""}, args{28, false}, &TruncateStats{100, 0}, false},
+		{"GoodPartialDelete", fields{db1, ""}, args{28, false}, &TruncateStats{99, 0}, false},
+		{"GoodNoDelete", fields{db1, ""}, args{31, false}, &TruncateStats{100, 0}, false},
+		{"GoodComplete", fields{db1, ""}, args{31, true}, &TruncateStats{99, 99999}, false},
+		{"GoodCompleteNoDelete", fields{db1, ""}, args{31, true}, &TruncateStats{75, 555444}, false},
+		{"GoodCompletePartialDelete", fields{db1, ""}, args{28, true}, &TruncateStats{1000, 1000000}, false},
+		{"2ndGetTruncateDbError", fields{db1, ""}, args{28, false}, nil, true},
+		{"2ndGetTruncateScanError", fields{db1, ""}, args{28, false}, nil, true},
+		{"TruncateDbError", fields{db1, ""}, args{90, false}, nil, true},
+		{"TruncateCompleteDbError", fields{db1, ""}, args{90, true}, nil, true},
+		{"1stGetTruncateDbError", fields{db1, ""}, args{60, false}, nil, true},
+		{"1stGetTruncateScanError", fields{db1, ""}, args{60, false}, nil, true},
+		{"GetBackupIdScanError", fields{db1, ""}, args{14, false}, nil, true},
+		{"GetBackupIdDbError", fields{db1, ""}, args{14, false}, nil, true},
 	}
 
 	for _, tt := range tests {
